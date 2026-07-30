@@ -268,7 +268,7 @@ export default function App() {
               <GraduationCap size={20} />
             </div>
             <span className="font-extrabold text-xl tracking-tight text-brand">
-              TỰ HỌC
+              TỰ HỌC TIẾNG ANH
             </span>
           </div>
 
