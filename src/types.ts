@@ -24,6 +24,7 @@ export interface StudySet {
   favorite: boolean;
   createdAt: string;
   isGenerated?: boolean;
+  category?: 'languages' | 'tech' | 'stem' | 'social';
   reviewLogs?: ReviewLog[];
 }
 

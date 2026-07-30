@@ -21,39 +21,45 @@ export const QuizMode: React.FC<QuizModeProps> = ({ set, onBack }) => {
 
   const generateQuiz = () => {
     const cardsCopy = [...set.cards];
-    // Shuffle cards first
+    // Shuffle cards first and take 5 to 10 questions
     const shuffledCards = cardsCopy.sort(() => Math.random() - 0.5);
+    const targetCount = Math.min(10, Math.max(5, shuffledCards.length));
+    const selectedCards = shuffledCards.slice(0, targetCount);
 
-    const generated: QuizQuestion[] = shuffledCards.map((card, idx) => {
-      // Rotate types of questions: Multiple Choice, True/False, Written, Fill in the blanks (Cloze)
-      const typeSeed = idx % 4;
+    const generated: QuizQuestion[] = selectedCards.map((card, idx) => {
+      const typeSeed = idx % 3;
       const questionId = `quiz-q-${idx}-${Date.now()}`;
 
-      if (typeSeed === 0) {
-        // MULTIPLE CHOICE: Prompt definition, guess term
+      if (typeSeed === 0 || typeSeed === 1) {
+        // MULTIPLE CHOICE (4 choices A, B, C, D)
         const otherTerms = set.cards
           .filter((c) => c.id !== card.id)
           .map((c) => c.term);
         const shuffledOthers = [...otherTerms].sort(() => Math.random() - 0.5);
         const distractors = shuffledOthers.slice(0, Math.min(3, shuffledOthers.length));
+        
+        // Ensure 4 choices if available
+        while (distractors.length < 3) {
+          distractors.push(`Phương án phụ ${distractors.length + 1}`);
+        }
+        
         const options = [card.term, ...distractors].sort(() => Math.random() - 0.5);
 
         return {
           id: questionId,
           cardId: card.id,
-          questionText: `Thuật ngữ nào phù hợp với định nghĩa sau:\n"${card.definition}"`,
+          questionText: `Thuật ngữ/Khái niệm nào phù hợp với định nghĩa sau:\n"${card.definition}"`,
           type: 'multiple-choice',
           options,
           correctAnswer: card.term,
         };
-      } else if (typeSeed === 1) {
+      } else {
         // TRUE / FALSE
         const isTrueAssertion = Math.random() > 0.5;
         let assertedDefinition = card.definition;
         let correctAnswer = 'Đúng';
 
         if (!isTrueAssertion && set.cards.length > 1) {
-          // Find a wrong definition to pair
           const otherCards = set.cards.filter((c) => c.id !== card.id);
           const wrongCard = otherCards[Math.floor(Math.random() * otherCards.length)];
           assertedDefinition = wrongCard.definition;
@@ -67,25 +73,6 @@ export const QuizMode: React.FC<QuizModeProps> = ({ set, onBack }) => {
           type: 'true-false',
           options: ['Đúng', 'Sai'],
           correctAnswer,
-        };
-      } else if (typeSeed === 2) {
-        // WRITTEN: Guess by definition
-        return {
-          id: questionId,
-          cardId: card.id,
-          questionText: `Hãy tự viết thuật ngữ tương đương cho định nghĩa này:\n"${card.definition}"`,
-          type: 'written',
-          correctAnswer: card.term,
-        };
-      } else {
-        // FILL IN THE BLANKS (CLOZE)
-        const { maskedText } = maskTermInExample(card.example || '', card.term, card.definition);
-        return {
-          id: questionId,
-          cardId: card.id,
-          questionText: `Điền vào chỗ trống thuật ngữ phù hợp nhất dựa trên ngữ cảnh ví dụ sau:\n\n"${maskedText}"`,
-          type: 'fill-blanks',
-          correctAnswer: card.term,
         };
       }
     });

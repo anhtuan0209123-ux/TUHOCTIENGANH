@@ -1,6 +1,6 @@
 {
-  "name": "TỰ HỌC TIẾNG ANH",
-  "description": "Hệ thống thẻ học thông minh và ôn tập thông thái với AI: bao gồm Chế độ Lật Thẻ 3D mượt mà, Chế độ Lập đề học tự động, và đặc biệt là Game chiến thuật Ném Rổ Trí Tuệ (Basketball Quiz Game) tích hợp Spaced Repetition (SRS) hàng đầu.",
+  "name": "HỌC THUỘC THÔNG MINH",
+  "description": "Hệ thống học tập & thẻ ghi nhớ thông minh cân bằng (Smart Flashcard Hub): lật thẻ 3D, luyện trắc nghiệm AI, phân tích cụm từ chuyên ngành và chế độ học cân bằng.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

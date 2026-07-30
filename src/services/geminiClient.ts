@@ -28,52 +28,32 @@ export function getMultipleDiverseServerSentences(term: string, definition: stri
       translation: `Bạn đã bao giờ cân nhắc xem ${cleanTerm}${suffixDef} ảnh hưởng như thế nào đến xã hội hiện đại chưa?`
     },
     {
-      sentence: `The expert gave a clear demonstration of ${cleanTerm} during the conference.`,
-      translation: `Chuyên gia đã minh họa rõ ràng về ${cleanTerm}${suffixDef} trong buổi hội thảo.`
+      sentence: `The professor gave a clear explanation of ${cleanTerm} during class.`,
+      translation: `Giáo sư đã giải thích rõ ràng về ${cleanTerm}${suffixDef} trong buổi học.`
     },
     {
-      sentence: `She quickly noticed that ${cleanTerm} was the key factor in solving the issue.`,
-      translation: `Cô ấy nhanh chóng nhận ra rằng ${cleanTerm}${suffixDef} là yếu tố then chốt để giải quyết vấn đề.`
+      sentence: `She quickly noticed that ${cleanTerm} was the key element in this section.`,
+      translation: `Cô ấy nhanh chóng nhận ra rằng ${cleanTerm}${suffixDef} là yếu tố then chốt trong phần này.`
     },
     {
-      sentence: `They are working together to improve their understanding of ${cleanTerm}.`,
-      translation: `Họ đang cùng nhau làm việc để nâng cao sự hiểu biết về ${cleanTerm}${suffixDef}.`
+      sentence: `They discussed how to apply ${cleanTerm} in real-life practice.`,
+      translation: `Họ đã thảo luận về cách ứng dụng ${cleanTerm}${suffixDef} vào thực tế.`
     },
     {
-      sentence: `Without a clear grasp of ${cleanTerm}, it is difficult to achieve good results.`,
-      translation: `Nếu không nắm vững ${cleanTerm}${suffixDef}, rất khó để đạt được kết quả tốt.`
+      sentence: `Having a solid grasp of ${cleanTerm} makes solving problems much easier.`,
+      translation: `Nắm vững ${cleanTerm}${suffixDef} giúp việc giải quyết vấn đề dễ dàng hơn nhiều.`
     },
     {
-      sentence: `This new textbook provides many practical scenarios involving ${cleanTerm}.`,
-      translation: `Cuốn giáo trình mới này đưa ra nhiều kịch bản thực tế liên quan đến ${cleanTerm}${suffixDef}.`
+      sentence: `This textbook provides concise examples regarding ${cleanTerm}.`,
+      translation: `Cuốn sách này đưa ra các ví dụ ngắn gọn liên quan đến ${cleanTerm}${suffixDef}.`
     },
     {
-      sentence: `Can you explain the main difference between ${cleanTerm} and other related terms?`,
-      translation: `Bạn có thể giải thích sự khác biệt chính giữa ${cleanTerm}${suffixDef} và các thuật ngữ liên quan khác không?`
+      sentence: `Can you explain how ${cleanTerm} functions in this context?`,
+      translation: `Bạn có thể giải thích ${cleanTerm}${suffixDef} hoạt động như thế nào trong ngữ cảnh này không?`
     },
     {
-      sentence: `Recent research suggests that ${cleanTerm} plays a crucial role in development.`,
-      translation: `Nghiên cứu gần đây cho thấy ${cleanTerm}${suffixDef} đóng vai trò quan trọng trong sự phát triển.`
-    },
-    {
-      sentence: `She decides to practice using ${cleanTerm} in daily conversations to build confidence.`,
-      translation: `Cô ấy quyết định thực hành sử dụng ${cleanTerm}${suffixDef} trong giao tiếp hàng ngày để tăng sự tự tin.`
-    },
-    {
-      sentence: `Our team had a productive discussion on how to optimize ${cleanTerm} effectively.`,
-      translation: `Nhóm chúng tôi đã có buổi thảo luận hiệu quả về cách tối ưu hóa ${cleanTerm}${suffixDef} một cách hữu hiệu.`
-    },
-    {
-      sentence: `Understanding ${cleanTerm} thoroughly will give you a significant advantage in this field.`,
-      translation: `Thấu hiểu ${cleanTerm}${suffixDef} một cách thấu đáo sẽ mang lại cho bạn lợi thế lớn trong lĩnh vực này.`
-    },
-    {
-      sentence: `The manager requested a detailed report regarding the implementation of ${cleanTerm}.`,
-      translation: `Người quản lý đã yêu cầu một báo cáo chi tiết liên quan đến việc triển khai ${cleanTerm}${suffixDef}.`
-    },
-    {
-      sentence: `It is widely acknowledged that ${cleanTerm} requires continuous practice and attention.`,
-      translation: `Mọi người đều công nhận rằng ${cleanTerm}${suffixDef} đòi hỏi sự rèn luyện và chú ý liên tục.`
+      sentence: `Recent studies highlight the practical value of ${cleanTerm}.`,
+      translation: `Các nghiên cứu gần đây nhấn mạnh giá trị thực tiễn của ${cleanTerm}${suffixDef}.`
     }
   ];
 
@@ -137,14 +117,12 @@ export function generateOfflineStudySet(topic: string, amount: number = 8) {
     title = `Chuyên Đề Học Tập: ${topic.charAt(0).toUpperCase() + topic.slice(1)}`;
     description = `Phát triển năng lực học thuật chuyên sâu và ghi nhớ vững chắc các khía cạnh liên quan tới: ${topic}.`;
     const generalTemplate = [
-      { term: `${topic} - Khái niệm`, definition: `Khái niệm cốt lõi, nguồn gốc nền móng và định hướng phát triển hiện đại liên quan tới ${topic}.`, example: `Understanding the core concept of ${topic} is essential.`, exampleTranslation: `Hiểu được khái niệm cốt lõi của ${topic} là điều thiết yếu.` },
-      { term: `${topic} - Quy tắc`, definition: `Các nguyên lý vận hành cốt tử, quy chuẩn hoạt động bắt buộc tuân thủ để đạt kết quả tối ưu.`, example: `Following the standard rules of ${topic} prevents common mistakes.`, exampleTranslation: `Tuân thủ các quy tắc chuẩn của ${topic} giúp tránh những lỗi thông thường.` },
-      { term: `${topic} - Ứng dụng`, definition: `Phương pháp đưa lý thuyết vào thực tiễn cuộc sống, công tác nghiên cứu hay sản xuất thực tiễn trong ngành.`, example: `Practical application of ${topic} brings immediate real-world benefits.`, exampleTranslation: `Ứng dụng thực tế của ${topic} mang lại những lợi ích thực tiễn tức thì.` },
-      { term: `${topic} - Giải pháp`, definition: `Các phương cách tháo gỡ điểm nghẽn, nâng cao hiệu suất hoạt động và giải quyết triệt để khó khăn phát sinh.`, example: `We need an effective solution for ${topic} challenges.`, exampleTranslation: `Chúng ta cần một giải pháp hiệu quả cho những thách thức của ${topic}.` },
-      { term: `${topic} - Tiến trình`, definition: `Tiến trình phát triển khoa học, theo dõi biểu đồ thời gian biến chuyển của hành vi.`, example: `Tracking the progress of ${topic} helps stay on schedule.`, exampleTranslation: `Theo dõi tiến trình của ${topic} giúp đảm bảo đúng tiến độ.` },
-      { term: `${topic} - Tư duy`, definition: `Phương pháp luận tư duy đa khía cạnh, thiết lập phản xạ giải quyết vấn đề nhanh chóng.`, example: `Creative thinking around ${topic} opens up new possibilities.`, exampleTranslation: `Tư duy sáng tạo xoay quanh ${topic} mở ra nhiều khả năng mới.` },
-      { term: `${topic} - Thực hành`, definition: `Các bài tập củng cố kiến thức trực quan, kích hoạt tính bền vững của trí nhớ dài hạn.`, example: `Daily practice of ${topic} improves your skill rapidly.`, exampleTranslation: `Thực hành hàng ngày về ${topic} giúp nâng cao kỹ năng của bạn nhanh chóng.` },
-      { term: `${topic} - Tối ưu`, definition: `Cách thức cắt giảm lãng phí, tinh gọn quy trình và nâng tầm chất lượng tối đa.`, example: `Continuous optimization of ${topic} ensures high quality.`, exampleTranslation: `Tối ưu hóa liên tục ${topic} đảm bảo chất lượng cao.` }
+      { term: `Khái niệm cốt lõi ${topic}`, definition: `Nền móng lý thuyết và định nghĩa cơ bản nhất liên quan tới ${topic}.`, example: `Understanding ${topic} is essential for fundamental knowledge.`, exampleTranslation: `Hiểu rõ ${topic} là điều thiết yếu cho kiến thức nền tảng.` },
+      { term: `Nguyên lý vận hành`, definition: `Quy tắc và cơ chế hoạt động cốt lõi của ${topic}.`, example: `The core principles guide every single practical application.`, exampleTranslation: `Các nguyên lý cốt lõi dẫn dắt mọi ứng dụng thực tế.` },
+      { term: `Ứng dụng thực tiễn`, definition: `Phương pháp đưa lý thuyết ${topic} vào thực tế công việc và cuộc sống.`, example: `Practical application brings immediate real-world value.`, exampleTranslation: `Ứng dụng thực tế mang lại giá trị tức thì.` },
+      { term: `Giải pháp tối ưu`, definition: `Các phương cách xử lý điểm nghẽn và nâng cao hiệu quả.`, example: `Finding an optimal solution improves total efficiency.`, exampleTranslation: `Tìm giải pháp tối ưu giúp nâng cao hiệu quả tổng thể.` },
+      { term: `Tiến trình thực hiện`, definition: `Các bước tuần tự rõ ràng để triển khai và theo dõi tiến độ.`, example: `Tracking progress helps maintain steady momentum.`, exampleTranslation: `Theo dõi tiến trình giúp duy trì đà phát triển ổn định.` },
+      { term: `Tư duy phân tích`, definition: `Phương pháp tư duy đa chiều để giải quyết vấn đề hiệu quả.`, example: `Analytical thinking opens up creative possibilities.`, exampleTranslation: `Tư duy phân tích mở ra những khả năng sáng tạo.` }
     ];
     cards = generalTemplate.slice(0, Math.min(amount, generalTemplate.length));
   }
@@ -285,10 +263,14 @@ export async function generateSetClient(topic: string, amount: number = 8, langu
 
   const prompt = `Tạo một học phần (study set) về chủ đề: "${topic}".
 Số lượng thẻ: ${amount}.
-Hãy thiết kế các từ/khái niệm cốt lõi (term) là từ tiếng Anh (hoặc thuật ngữ ngoại ngữ).
-YÊU CẦU QUAN TRỌNG VỀ ĐỊNH NGHĨA: Định nghĩa tiếng Việt (definition) bắt buộc phải cực kỳ đơn giản, ngắn gọn, trực diện, dễ hiểu và dễ nhớ nhất cho học viên, tránh các giải thích hàn lâm rườm rà dài dòng phức tạp.
-YÊU CẦU NGỮ CẢNH THỰC TẾ TRONG CÂU VÍ DỤ (REAL-LIFE CONTEXT): Với mỗi từ vựng (term), BẮT BUỘC đặt 1 câu tiếng Anh tự nhiên, thực tế trong đời sống hàng ngày/giao tiếp có chứa từ đó. TUYỆT ĐỐI CẤM sử dụng các câu mẫu chung chung/mô tả việc học như 'Please study the word...'. Phần exampleTranslation PHẢI LÀ BẢN DỊCH TIẾNG VIỆT HOÀN CHỈNH VÀ CHÍNH XÁC CỦA CHÍNH CÂU VÍ DỤ TIẾNG ANH ĐÓ.
-Nếu chủ đề không phải ngoại ngữ, ghi ngôn ngữ chính bằng ${language}.`;
+QUY TẮC CẮT THẺ & DỊCH NGHĨA CHUẨN ĐẮC THÙ THUẬT NGỮ:
+1. Đối với môn Tiếng Anh: Mặt trước (term) là Từ/Cụm từ tiếng Anh, mặt sau (definition) là Nghĩa tiếng Việt ngắn gọn, dễ nhớ.
+2. Đối với các môn học khác (Lịch sử, Địa lý, Lập trình, Luật, Toán, Hóa...):
+   - KHÔNG TỰ Ý THÊM các đuôi "- Khái niệm", "- Quy tắc", "- Ứng dụng" vào sau Thuật ngữ!
+   - Giữ nguyên Thuật ngữ/Khái niệm/Câu hỏi chuẩn (Ví dụ: Mặt trước: "Nhà Trần thành lập năm nào?", Mặt sau: "Năm 1226").
+   - Bắt buộc phân tích nguyên CỤM THUẬT NGỮ GHÉP (Ví dụ: 'Deep Learning' -> 'Học sâu', 'Phản ứng xà phòng hóa' -> 'Phản ứng xà phòng hóa'), TUYỆT ĐỐI KHÔNG xé lẻ từ.
+3. YÊU CẦU CẦN THIẾT VỀ ĐỊNH NGHĨA: Định nghĩa (definition) phải cực kỳ đơn giản, ngắn gọn, trực diện, dễ hiểu, tránh rườm rà dài dòng.
+4. CÂU VÍ DỤ: Đặt câu ví dụ thực tế sử dụng thuật ngữ kèm bản dịch tiếng Việt hoàn chỉnh.`;
 
   const responseSchema = {
     type: "OBJECT",
@@ -403,10 +385,10 @@ export async function deepDiveClient(term: string, definition?: string, example?
   const ai = getClientGemini();
   if (!ai) {
     return {
-      essence: `💡 Mẹo nhớ từ "${term}": Hãy chia nhỏ hoặc liên tưởng khái niệm này tới những hình ảnh hàng ngày. Bản chất của khái niệm này liên quan mật thiết tới tư duy giải quyết vấn đề.`,
+      essence: `💡 Mẹo nhớ từ "${term}": Liên tưởng khái niệm này tới những hình ảnh thực tế. Bản chất của khái niệm này giúp xử lý công việc trực diện hơn.`,
       examples: [
-        `Ví dụ 1: She explained that "${term}" plays an important role in daily life. (Cô ấy giải thích rằng "${term}" đóng một vai trò quan trọng trong cuộc sống hàng ngày).`,
-        `Ví dụ 2: Understanding "${term}" clearly helps us solve problems faster. (Hiểu rõ "${term}" giúp chúng ta giải quyết các vấn đề nhanh hơn).`
+        `Ví dụ 1: She explained how "${term}" functions in this specific scenario. (Cô ấy đã giải thích cách "${term}" hoạt động trong kịch bản cụ thể này).`,
+        `Ví dụ 2: Applying "${term}" correctly improves accuracy significantly. (Áp dụng chính xác "${term}" giúp nâng cao đáng kể độ chính xác).`
       ],
       mistakes: `⚠️ Tránh nhầm lẫn cách viết chính tả hoặc hiểu sai trường nghĩa cơ bản của từ "${term}". Hãy thường xuyên ôn tập và tự gõ lại để củng cố phản xạ tự nhiên.`
     };
@@ -451,10 +433,10 @@ Trả về JSON chính xác:
   } catch (err) {
     console.warn("Client Gemini deepDive failed:", err);
     return {
-      essence: `💡 Mẹo nhớ từ "${term}": Hãy chia nhỏ hoặc liên tưởng khái niệm này tới những hình ảnh hàng ngày. Bản chất của khái niệm này liên quan mật thiết tới tư duy giải quyết vấn đề.`,
+      essence: `💡 Mẹo nhớ từ "${term}": Liên tưởng khái niệm này tới những hình ảnh thực tế. Bản chất của khái niệm này giúp xử lý công việc trực diện hơn.`,
       examples: [
-        `Ví dụ 1: She explained that "${term}" plays an important role in daily life. (Cô ấy giải thích rằng "${term}" đóng một vai trò quan trọng trong cuộc sống hàng ngày).`,
-        `Ví dụ 2: Understanding "${term}" clearly helps us solve problems faster. (Hiểu rõ "${term}" giúp chúng ta giải quyết các vấn đề nhanh hơn).`
+        `Ví dụ 1: She explained how "${term}" functions in this specific scenario. (Cô ấy đã giải thích cách "${term}" hoạt động trong kịch bản cụ thể này).`,
+        `Ví dụ 2: Applying "${term}" correctly improves accuracy significantly. (Áp dụng chính xác "${term}" giúp nâng cao đáng kể độ chính xác).`
       ],
       mistakes: `⚠️ Tránh nhầm lẫn cách viết chính tả hoặc hiểu sai trường nghĩa cơ bản của từ "${term}". Hãy thường xuyên ôn tập để củng cố phản xạ tự nhiên.`
     };
@@ -468,12 +450,16 @@ export async function analyzeVocabClient(text: string, language: string = "Vietn
     return extractOfflineVocab(text);
   }
 
-  const prompt = `Phân tích và trích xuất danh sách từ vựng từ đoạn văn bản sau:
+  const prompt = `Phân tích và trích xuất danh sách từ vựng/thuật ngữ từ đoạn văn bản sau:
 """
 ${text}
 """
-1. Nếu là danh sách từ vựng (mỗi dòng 1 từ hoặc cặp từ-nghĩa), hãy trích xuất 100% đầy đủ tất cả các từ.
-2. Nếu là văn bản dài, trích xuất 15 đến 30 từ vựng nổi bật nhất.
+QUY TẮC BẮT BUỘC PHÂN TÍCH THUẬT NGỮ (SMART PARSING):
+- Bắt buộc phải xét nghĩa và giữ nguyên toàn bộ CỤM THUẬT NGỮ CHUYÊN NGÀNH, CỤM TỪ GHÉP hoặc COLLOCATIONS (Ví dụ: 'Deep Learning' -> 'Học sâu', 'Machine Learning' -> 'Máy học', 'Cân bằng hóa học' -> 'Chemical equilibrium', 'Lexical Resource' -> 'Vốn từ vựng').
+- TUYỆT ĐỐI KHÔNG ĐƯỢC tự ý cắt lẻ các từ ghép/cụm từ thành các từ đơn riêng biệt (CẤM cắt riêng 'Deep', 'Learning').
+
+1. Nếu là danh sách từ vựng (mỗi dòng 1 từ hoặc cặp từ-nghĩa), hãy trích xuất 100% đầy đủ tất cả các thuật ngữ.
+2. Nếu là văn bản dài, trích xuất 15 đến 30 cụm thuật ngữ nổi bật nhất.
 Mỗi thẻ gồm: 'term', 'definition' (bằng ${language}, cực kỳ đơn giản, ngắn gọn, trực diện), 'example' (câu ví dụ tiếng Anh ngắn), 'exampleTranslation' (bản dịch câu ví dụ).`;
 
   const responseSchema = {

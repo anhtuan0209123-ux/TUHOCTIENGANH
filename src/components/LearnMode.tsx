@@ -556,32 +556,11 @@ export const LearnMode: React.FC<LearnModeProps> = ({ set, onBack, onUpdateSet }
           >
             📝 Điền khuyết
           </button>
-          <button
-            id="submode-sentence-btn"
-            onClick={() => { 
-              setStudySubMode('translate-sentence'); 
-              setTypedAnswer(''); 
-              setSelectedAnswer(null); 
-              setIsSubmitted(false); 
-              setReinforceSuccess(true); 
-              setReinforceTypedCount(0); 
-              setReinforceInputValue(''); 
-              setGeminiSentences([]); 
-              setSubmitError('');
-            }}
-            className={`py-2 font-bold text-xs rounded-lg transition-all text-center cursor-pointer ${
-              studySubMode === 'translate-sentence'
-                ? 'bg-white text-indigo-700 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            💬 Dịch câu ví dụ
-          </button>
         </div>
       )}
 
       {/* Study direction switcher */}
-      {!showSummary && studySubMode !== 'translate-sentence' && (
+      {!showSummary && (
         <div className="flex bg-slate-50 border border-slate-200/60 p-1.5 rounded-xl mb-4 items-center justify-between text-xs font-bold text-slate-500">
           <span className="pl-2">Chiều học dịch thuật:</span>
           <div className="flex gap-1">

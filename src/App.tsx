@@ -5,7 +5,6 @@ import { SetCard } from './components/SetCard';
 import { AiGenerator } from './components/AiGenerator';
 import { SetCreator } from './components/SetCreator';
 import { FlashcardViewer } from './components/FlashcardViewer';
-import { VocabVerifier } from './components/VocabVerifier';
 import { LearnMode } from './components/LearnMode';
 import { QuizMode } from './components/QuizMode';
 import { BlockGame } from './components/BlockGame';
@@ -16,6 +15,23 @@ import { ReviewLogPanel } from './components/ReviewLogPanel';
 import { FolderPanel } from './components/FolderPanel';
 import { ReviewLog } from './types';
 
+export function getSetCategory(s: StudySet): 'languages' | 'tech' | 'stem' | 'social' {
+  if (s.category) return s.category;
+  const text = (s.title + ' ' + s.description).toLowerCase();
+  if (/ielts|toeic|vocab|tiếng anh|english|ngoại ngữ|nhật|hàn|trung|ngữ pháp|từ vựng/i.test(text)) {
+    return 'languages';
+  }
+  if (/react|code|lập trình|javascript|python|cntt|html|css|phần mềm|developer|máy tính|algorithm|hooks/i.test(text)) {
+    return 'tech';
+  }
+  if (/toán|lý|hóa|sinh|math|physics|chemistry|biology|tự nhiên|phương trình|xà phòng hóa/i.test(text)) {
+    return 'stem';
+  }
+  if (/sử|địa|luật|xã hội|khảo thí|đgnl|lịch sử|địa lý|văn|triết|thủ đô/i.test(text)) {
+    return 'social';
+  }
+  return 'languages';
+}
 
 import { AnalyticsPanel } from './components/AnalyticsPanel';
 import { ApiKeyHeaderBar } from './components/ApiKeyHeaderBar';
@@ -33,11 +49,10 @@ export default function App() {
   const [currentSet, setCurrentSet] = useState<StudySet | null>(null);
   const [activeMode, setActiveMode] = useState<StudyMode | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [verifyingSet, setVerifyingSet] = useState<StudySet | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'sets' | 'folders' | 'ai' | 'analytics'>('sets');
   const [detailTab, setDetailTab] = useState<'terms' | 'review'>('terms');
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'fav' | 'custom'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'languages' | 'tech' | 'stem' | 'social' | 'fav' | 'custom'>('all');
   const [deleteSetId, setDeleteSetId] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -194,32 +209,31 @@ export default function App() {
     }
   };
 
-  // Handle manual saving (create or update, intercepted for verification)
+  // Handle manual saving (create or update, jump straight to Flashcard study view)
   const handleSaveSet = (savedSet: StudySet) => {
-    setVerifyingSet(savedSet);
-  };
-
-  // Handle AI generated set receiving (intercepted for verification)
-  const handleAiGenerated = (newSet: StudySet) => {
-    setVerifyingSet(newSet);
-  };
-
-  // Final verified save handler
-  const handleSaveVerifiedSet = (verifiedSet: StudySet) => {
-    const exists = studySets.some((s) => s.id === verifiedSet.id);
+    const exists = studySets.some((s) => s.id === savedSet.id);
     let updated: StudySet[];
 
     if (exists) {
-      updated = studySets.map((s) => (s.id === verifiedSet.id ? verifiedSet : s));
+      updated = studySets.map((s) => (s.id === savedSet.id ? savedSet : s));
     } else {
-      updated = [verifiedSet, ...studySets];
+      updated = [savedSet, ...studySets];
     }
 
     saveStudySets(updated);
-    setCurrentSet(verifiedSet);
-    setVerifyingSet(null);
+    setCurrentSet(savedSet);
     setIsEditing(false);
-    setActiveTab('sets'); // Switch back to sets review
+    setActiveMode('flashcards'); // Streamlined: Jump directly to Flashcard review
+    setActiveTab('sets');
+  };
+
+  // Handle AI generated set receiving (jump straight to Flashcard study view)
+  const handleAiGenerated = (newSet: StudySet) => {
+    const updated = [newSet, ...studySets];
+    saveStudySets(updated);
+    setCurrentSet(newSet);
+    setActiveMode('flashcards'); // Streamlined: Jump directly to Flashcard review
+    setActiveTab('sets');
   };
 
   // Speaks out card list definitions/terms
@@ -244,6 +258,10 @@ export default function App() {
     // category filter matches
     if (selectedCategory === 'fav') return s.favorite;
     if (selectedCategory === 'custom') return !s.id.startsWith('preset-');
+    if (selectedCategory === 'languages') return getSetCategory(s) === 'languages';
+    if (selectedCategory === 'tech') return getSetCategory(s) === 'tech';
+    if (selectedCategory === 'stem') return getSetCategory(s) === 'stem';
+    if (selectedCategory === 'social') return getSetCategory(s) === 'social';
     return true;
   });
 
@@ -268,7 +286,7 @@ export default function App() {
               <GraduationCap size={20} />
             </div>
             <span className="font-extrabold text-xl tracking-tight text-brand">
-              TỰ HỌC TIẾNG ANH
+              HỌC THUỘC THÔNG MINH
             </span>
           </div>
 
@@ -310,13 +328,7 @@ export default function App() {
 
       {/* Primary Workspace container */}
       <main className="max-w-6xl mx-auto px-4 py-8">
-        {verifyingSet ? (
-          <VocabVerifier
-            initialSet={verifyingSet}
-            onFinish={handleSaveVerifiedSet}
-            onCancel={() => setVerifyingSet(null)}
-          />
-        ) : isEditing ? (
+        {isEditing ? (
           /* MANUAL EDITING / CREATING WORKSPACE CANVAS */
           <SetCreator
             initialSet={currentSet}
@@ -328,7 +340,11 @@ export default function App() {
           /* ACTIVE STUDY SET WORKSPACE PANEL */
           <div>
             {activeMode === 'flashcards' && (
-              <FlashcardViewer set={currentSet} onBack={() => setActiveMode(null)} />
+              <FlashcardViewer 
+                set={currentSet} 
+                onBack={() => setActiveMode(null)} 
+                onStartQuiz={() => setActiveMode('quiz')}
+              />
             )}
             {activeMode === 'learn' && (
               <LearnMode 
@@ -688,10 +704,10 @@ export default function App() {
               <div className="absolute -right-10 -top-10 w-44 h-44 bg-blue-50/50 rounded-full blur-3xl pointer-events-none" />
               <div className="relative z-10 max-w-2xl">
                 <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 leading-tight">
-                  Làm chủ tri thức với thẻ ghi nhớ thông minh!
+                  Bóc Tách Tài Liệu & Học Thuộc Thông Minh!
                 </h1>
                 <p className="text-sm sm:text-base text-slate-500 mt-2 leading-relaxed">
-                  Tạo các học phần ghi nhớ, kết hợp công cụ luyện tập khoa học hoặc sử dụng Gemini AI để sinh tài liệu học lập trình, ngôn ngữ tức thời.
+                  Nhập hoặc dán tài liệu nguồn, văn bản hay ghi chú bài học của bạn. AI Gemini sẽ tự động phân tích và trích xuất nguyên vẹn cụm từ ghép thành các thẻ Flashcard sẵn sàng ôn luyện.
                 </p>
                 <div className="flex flex-wrap gap-3 mt-6">
                   <button
@@ -706,7 +722,7 @@ export default function App() {
                     onClick={() => setActiveTab('ai')}
                     className="px-5 py-3 bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 rounded-lg font-bold text-sm flex items-center gap-1.5 transition cursor-pointer"
                   >
-                    <Sparkles size={16} className="text-brand" /> Thiết kế học phần AI
+                    <Sparkles size={16} className="text-brand" /> Bóc tách tài liệu AI
                   </button>
                 </div>
               </div>
@@ -748,7 +764,7 @@ export default function App() {
                 }`}
               >
                 <Sparkles size={16} className="text-brand" />
-                <span>Trợ lý học thuật AI</span>
+                <span>Bóc tách tài liệu AI</span>
               </button>
               <button
                 id="tab-analytics"
@@ -798,39 +814,83 @@ export default function App() {
                 {/* Search query field & Category toggles */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                   {/* Category choices */}
-                  <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl w-fit">
+                  <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl w-fit">
                     <button
                       id="category-all-btn"
                       onClick={() => setSelectedCategory('all')}
-                      className={`px-4 py-2 rounded-lg font-bold text-xs transition cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
                         selectedCategory === 'all'
-                          ? 'bg-white shadow-xs text-slate-800'
+                          ? 'bg-white shadow-xs text-slate-900'
                           : 'text-slate-500 hover:text-slate-800'
                       }`}
                     >
                       Tất cả
                     </button>
                     <button
-                      id="category-fav-btn"
-                      onClick={() => setSelectedCategory('fav')}
-                      className={`px-4 py-2 rounded-lg font-bold text-xs transition cursor-pointer ${
-                        selectedCategory === 'fav'
-                          ? 'bg-white shadow-xs text-amber-600'
+                      id="category-lang-btn"
+                      onClick={() => setSelectedCategory('languages')}
+                      className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
+                        selectedCategory === 'languages'
+                          ? 'bg-white shadow-xs text-brand font-extrabold'
                           : 'text-slate-500 hover:text-slate-800'
                       }`}
                     >
-                      Mục yêu thích ⭐
+                      🇬🇧 Ngoại Ngữ
+                    </button>
+                    <button
+                      id="category-tech-btn"
+                      onClick={() => setSelectedCategory('tech')}
+                      className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
+                        selectedCategory === 'tech'
+                          ? 'bg-white shadow-xs text-indigo-700 font-extrabold'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      💻 Lập Trình & CNTT
+                    </button>
+                    <button
+                      id="category-stem-btn"
+                      onClick={() => setSelectedCategory('stem')}
+                      className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
+                        selectedCategory === 'stem'
+                          ? 'bg-white shadow-xs text-emerald-700 font-extrabold'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      📐 Khoa Học Tự Nhiên
+                    </button>
+                    <button
+                      id="category-social-btn"
+                      onClick={() => setSelectedCategory('social')}
+                      className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
+                        selectedCategory === 'social'
+                          ? 'bg-white shadow-xs text-amber-700 font-extrabold'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      📖 Xã Hội & Khảo Thí
+                    </button>
+                    <button
+                      id="category-fav-btn"
+                      onClick={() => setSelectedCategory('fav')}
+                      className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
+                        selectedCategory === 'fav'
+                          ? 'bg-white shadow-xs text-amber-600 font-extrabold'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      ⭐ Yêu thích
                     </button>
                     <button
                       id="category-custom-btn"
                       onClick={() => setSelectedCategory('custom')}
-                      className={`px-4 py-2 rounded-lg font-bold text-xs transition cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
                         selectedCategory === 'custom'
-                          ? 'bg-white shadow-xs text-brand'
+                          ? 'bg-white shadow-xs text-blue-600 font-extrabold'
                           : 'text-slate-500 hover:text-slate-800'
                       }`}
                     >
-                      Do bạn tạo
+                      ✏️ Do bạn tạo
                     </button>
                   </div>
 

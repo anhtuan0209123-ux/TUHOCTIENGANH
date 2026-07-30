@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Card, StudySet } from '../types';
 import { 
   ArrowLeft, ArrowRight, Volume2, Shuffle, 
-  RotateCcw, Play, Pause, HelpCircle, Sparkles, Loader2, Filter, Info, Clock
+  RotateCcw, Play, Pause, HelpCircle, Sparkles, Loader2, Filter, Info, Clock, Target
 } from 'lucide-react';
 import { trackStudyActivity } from '../utils/analytics';
 import { deepDiveClient } from '../services/geminiClient';
@@ -10,9 +10,10 @@ import { deepDiveClient } from '../services/geminiClient';
 interface FlashcardViewerProps {
   set: StudySet;
   onBack: () => void;
+  onStartQuiz?: () => void;
 }
 
-export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({ set, onBack }) => {
+export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({ set, onBack, onStartQuiz }) => {
   const [cards, setCards] = useState<Card[]>([...set.cards]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -286,11 +287,23 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({ set, onBack })
         </span>
       </div>
 
-      <div className="mb-4">
-        <h1 id="flashcard-set-title" className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 leading-tight">
-          {set.title}
-        </h1>
-        <p className="text-sm text-slate-500 mt-1 line-clamp-1">{set.description}</p>
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 id="flashcard-set-title" className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 leading-tight">
+            {set.title}
+          </h1>
+          <p className="text-sm text-slate-500 mt-1 line-clamp-1">{set.description}</p>
+        </div>
+        {onStartQuiz && (
+          <button
+            id="start-ai-quiz-btn"
+            onClick={onStartQuiz}
+            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-xs hover:shadow-md transition flex items-center gap-2 cursor-pointer shrink-0 self-start sm:self-auto"
+          >
+            <Target size={16} />
+            <span>Thử thách Trắc nghiệm AI 🎯</span>
+          </button>
+        )}
       </div>
 
       {/* Spaced Repetition Control Bar */}
