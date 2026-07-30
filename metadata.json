@@ -1,0 +1,6 @@
+{
+  "name": "TỰ HỌC",
+  "description": "Hệ thống thẻ học thông minh và ôn tập thông thái với AI: bao gồm Chế độ Lật Thẻ 3D mượt mà, Chế độ Lập đề học tự động, và đặc biệt là Game chiến thuật Ném Rổ Trí Tuệ (Basketball Quiz Game) tích hợp Spaced Repetition (SRS) hàng đầu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
