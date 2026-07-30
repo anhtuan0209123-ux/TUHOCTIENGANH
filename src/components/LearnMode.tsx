@@ -3,6 +3,7 @@ import { Card, StudySet } from '../types';
 import { ArrowLeft, Sparkles, AlertCircle, CheckCircle, RefreshCcw, ThumbsUp, Loader2, Shuffle, Infinity } from 'lucide-react';
 import { trackStudyActivity } from '../utils/analytics';
 import { checkAnswerSmart, maskTermInExample, getCleanExample } from '../utils/stringMatcher';
+import { generateMoreCardsClient, generateDynamicSentencesClient } from '../services/geminiClient';
 
 interface LearnModeProps {
   set: StudySet;
@@ -208,22 +209,8 @@ export const LearnMode: React.FC<LearnModeProps> = ({ set, onBack, onUpdateSet }
 
     try {
       const currentTerms = [...set.cards, ...addedCards].map(c => c.term);
+      const data = await generateMoreCardsClient(set.title, currentTerms, 5);
 
-      const response = await fetch('/api/generate-more-cards', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          topic: set.title,
-          existingTerms: currentTerms,
-          amount: 5
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error("Lỗi mạng khi tải thêm thẻ.");
-      }
-
-      const data = await response.json();
       if (data && data.cards && Array.isArray(data.cards) && data.cards.length > 0) {
         const newCards: Card[] = data.cards.map((c: any) => ({
           id: `dynamic-card-${Date.now()}-${Math.random()}`,
@@ -313,16 +300,9 @@ export const LearnMode: React.FC<LearnModeProps> = ({ set, onBack, onUpdateSet }
     setIsLoadingGemini(true);
     setGeminiSentences([]);
     try {
-      const response = await fetch('/api/generate-dynamic-sentences', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ term, definition })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data && Array.isArray(data.sentences)) {
-          setGeminiSentences(data.sentences);
-        }
+      const data = await generateDynamicSentencesClient(term, definition);
+      if (data && Array.isArray(data.sentences)) {
+        setGeminiSentences(data.sentences);
       }
     } catch (error) {
       console.error("Error fetching Gemini sentences:", error);

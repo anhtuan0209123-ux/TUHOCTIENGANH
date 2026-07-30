@@ -5,6 +5,7 @@ import {
   RotateCcw, Play, Pause, HelpCircle, Sparkles, Loader2, Filter, Info, Clock
 } from 'lucide-react';
 import { trackStudyActivity } from '../utils/analytics';
+import { deepDiveClient } from '../services/geminiClient';
 
 interface FlashcardViewerProps {
   set: StudySet;
@@ -66,21 +67,11 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({ set, onBack })
     setActiveDeepDiveCardId(currentCard.id);
 
     try {
-      const response = await fetch('/api/deep-dive', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          term: currentCard.term,
-          definition: currentCard.definition,
-          example: currentCard.example || ""
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Sự cố kết nối máy chủ Gemini.');
-      }
-
-      const data = await response.json();
+      const data = await deepDiveClient(
+        currentCard.term,
+        currentCard.definition,
+        currentCard.example || ""
+      );
       setDeepDiveData(data);
     } catch (err: any) {
       console.error(err);

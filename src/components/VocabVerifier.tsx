@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, StudySet } from '../types';
 import { Check, ShieldCheck, HelpCircle, Loader2, ThumbsUp, ChevronRight, Edit3, Save, AlertCircle, AlertTriangle, Play, Sparkles, BookOpen } from 'lucide-react';
+import { checkVocabQualityClient, checkVocabBulkClient } from '../services/geminiClient';
 
 interface VocabVerifierProps {
   initialSet: StudySet;
@@ -101,22 +102,7 @@ export const VocabVerifier: React.FC<VocabVerifierProps> = ({ initialSet, onFini
     }));
 
     try {
-      const response = await fetch('/api/check-vocab-quality', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          term: card.term,
-          definition: card.definition
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Không thể kết nối đến máy chủ thẩm định.');
-      }
-
-      const verified = await response.json();
+      const verified = await checkVocabQualityClient(card.term, card.definition);
 
       setVStates((prev) => ({
         ...prev,
@@ -236,19 +222,7 @@ export const VocabVerifier: React.FC<VocabVerifierProps> = ({ initialSet, onFini
     setBulkScanDone(false);
 
     try {
-      const response = await fetch('/api/check-vocab-bulk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ cards }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Thẩm định hàng loạt thất bại.');
-      }
-
-      const data = await response.json();
+      const data = await checkVocabBulkClient(cards);
       const correctionsMap = new Map<string, any>();
       if (data.corrections && Array.isArray(data.corrections)) {
         data.corrections.forEach((c: any) => {

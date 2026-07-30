@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Brain, Loader2, FileText, ClipboardList, Zap, Check, AlertCircle, ShieldCheck, BookOpen, ExternalLink, Search, HelpCircle, Globe } from 'lucide-react';
 import { StudySet } from '../types';
+import { generateSetClient, analyzeVocabClient, academicAuditClient } from '../services/geminiClient';
 
 interface AiGeneratorProps {
   onGenerated: (newSet: StudySet) => void;
@@ -194,24 +195,7 @@ export const AiGenerator: React.FC<AiGeneratorProps> = ({ onGenerated }) => {
     setErrorMsg(null);
 
     try {
-      const response = await fetch('/api/generate-set', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          topic: topic.trim(),
-          amount: amount,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Đã xảy ra lỗi khi tạo học phần theo chủ đề.');
-      }
-
-      const rawSet = data;
+      const rawSet = await generateSetClient(topic.trim(), amount);
       const newStudySet: StudySet = {
         id: `ai-set-${Date.now()}`,
         title: rawSet.title || topic,
@@ -250,23 +234,7 @@ export const AiGenerator: React.FC<AiGeneratorProps> = ({ onGenerated }) => {
     setErrorMsg(null);
 
     try {
-      const response = await fetch('/api/analyze-vocab', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: bulkText.trim(),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Đã xảy ra lỗi khi phân tích khối từ vựng lớn.');
-      }
-
-      const rawSet = data;
+      const rawSet = await analyzeVocabClient(bulkText.trim());
       const newStudySet: StudySet = {
         id: `ai-set-${Date.now()}`,
         title: rawSet.title || "Thẻ học phân tích tự động",
@@ -306,24 +274,7 @@ export const AiGenerator: React.FC<AiGeneratorProps> = ({ onGenerated }) => {
     setAuditResult(null);
 
     try {
-      const response = await fetch('/api/academic-audit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          subject: auditSubject,
-          content: auditContent.trim(),
-          mode: auditMode,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Đã xảy ra lỗi khi kiểm tra thẩm định học thuật.');
-      }
-
+      const data = await academicAuditClient(auditSubject, auditContent.trim(), auditMode);
       setAuditResult(data);
     } catch (err: any) {
       console.error(err);

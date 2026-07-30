@@ -11,6 +11,7 @@ import {
   logoutCalendar, 
   syncTasksToGoogleCalendar,
 } from '../utils/googleCalendar';
+import { campaignChatClient } from '../services/geminiClient';
 import { User as FirebaseUser } from 'firebase/auth';
 
 interface Task {
@@ -626,7 +627,7 @@ export function DisciplineCampaign() {
     }
   };
 
-  // Gemini chat submission using either API key or proxy server backup
+  // Gemini chat submission
   const handleSendChat = async () => {
     const prompt = userInput.trim();
     if (!prompt) return;
@@ -638,44 +639,8 @@ export function DisciplineCampaign() {
     setChatLoading(true);
 
     try {
-      let aiText = "";
-
-      // Prioritize client-side API direct call if user saved key, otherwise leverage secure server proxy
-      if (apiKeySaved && apiKey) {
-        const systemInstruction = 
-          "Bạn là cố vấn thông thái trong 'Chiến Dịch 13 Tuần Bứt Phá'. " +
-          "Mục tiêu tối thượng của học viên là: IELTS 7.0, học tốt và nắm vững toàn bộ kiến thức HK1 lớp 12 (Toán Lý Hóa), và rèn luyện thể hình 6 múi săn chắc. " +
-          "Hãy trả lời một cách súc tích, nồng nhiệt nhưng đanh thép, đầy tính động lực hành động, khoa học thể chất/trí tuệ và có tinh thần kỷ luật thép.";
-
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: `${systemInstruction}\n\nHọc sinh hỏi: ${prompt}` }] }]
-          })
-        });
-
-        const data = await res.json();
-        if (res.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          aiText = data.candidates[0].content.parts[0].text;
-        } else {
-          throw new Error(data.error?.message || "Không thể nhận phản hồi.");
-        }
-      } else {
-        // Fallback to fully server-managed Secure API route proxy (doesn't expose key!)
-        const res = await fetch("/api/campaign-chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          aiText = data.text;
-        } else {
-          throw new Error(data.error || "Gặp sự cố giải quyết bài giảng.");
-        }
-      }
-
+      const data = await campaignChatClient(prompt);
+      const aiText = data.text || "Hãy tiếp tục giữ vững tinh thần kỷ luật!";
       setAiChatMessages(prev => [...prev, { sender: 'ai', text: aiText }]);
     } catch (err: any) {
       console.error(err);
@@ -683,7 +648,7 @@ export function DisciplineCampaign() {
         ...prev, 
         { 
           sender: 'ai', 
-          text: `💥 **Gặp sự cố kết nối:** ${err.message}. Hãy kiểm tra xem bạn đã cấu hình internet hợp lệ, hoặc thử nhấn nút "RUN" cấu hình bên trên để phục hồi trạng thái nhé.` 
+          text: `⚠️ **Có lỗi kết nối:** ${err.message || 'Vui lòng kiểm tra lại GEMINI_API_KEY ở góc trên màn hình.'}` 
         }
       ]);
     } finally {

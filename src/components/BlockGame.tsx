@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, StudySet } from '../types';
 import { ArrowLeft, RefreshCw, Trophy, Sparkles, Check, X, ShieldAlert, Layers, RotateCw, Box, HelpCircle, AlertCircle, Hourglass, Flame, Zap, Hammer, Coins } from 'lucide-react';
+import { generateReviveQuizClient } from '../services/geminiClient';
 
 interface BlockGameProps {
   set: StudySet;
@@ -125,18 +126,9 @@ export const BlockGame: React.FC<BlockGameProps> = ({ set, onBack }) => {
     if (filledCount >= 14) {
       const preload = async () => {
         try {
-          const response = await fetch('/api/generate-revive-quiz', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ cards: set.cards }),
-          });
-          if (response.ok) {
-            const data = await response.json();
-            setPreloadedReviveQuiz(data);
-            console.log("Preloaded AI rescue quiz successfully!");
-          }
+          const data = await generateReviveQuizClient(set.cards);
+          setPreloadedReviveQuiz(data);
+          console.log("Preloaded AI rescue quiz successfully!");
         } catch (err) {
           console.warn("Preloading AI rescue quiz failed or timed out", err);
         }
@@ -638,21 +630,7 @@ export const BlockGame: React.FC<BlockGameProps> = ({ set, onBack }) => {
 
     setLoadingReviveQuiz(true);
     try {
-      const response = await fetch('/api/generate-revive-quiz', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          cards: set.cards
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Can not fetch revive quiz from AI server');
-      }
-
-      const data = await response.json();
+      const data = await generateReviveQuizClient(set.cards);
       setReviveQuizData(data);
     } catch (err) {
       console.error('Revive Quiz Generation Fallback', err);
