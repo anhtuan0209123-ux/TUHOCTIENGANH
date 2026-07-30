@@ -6,23 +6,25 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-let aiClient: GoogleGenAI | null = null;
-function getGeminiClient() {
-  if (!aiClient) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY is not configured. Please set it in Settings > Secrets.");
-    }
-    aiClient = new GoogleGenAI({
-      apiKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        }
-      }
-    });
+function getGeminiClient(req?: express.Request) {
+  const headerKey = req?.headers['x-gemini-api-key'] || req?.headers['x-api-key'];
+  const bodyKey = req?.body?.geminiApiKey;
+  let customKey = (typeof headerKey === 'string' ? headerKey : '') || (typeof bodyKey === 'string' ? bodyKey : '');
+  if (customKey) {
+    customKey = customKey.trim();
   }
-  return aiClient;
+  const apiKey = customKey || process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Chưa cài đặt GEMINI_API_KEY. Vui lòng nhập API Key của bạn ở ô nhập ở trên cùng màn hình.");
+  }
+  return new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
 }
 
 function isQuotaError(error: any): boolean {

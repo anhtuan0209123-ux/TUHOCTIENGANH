@@ -18,6 +18,7 @@ import { ReviewLog } from './types';
 
 
 import { AnalyticsPanel } from './components/AnalyticsPanel';
+import { ApiKeyHeaderBar } from './components/ApiKeyHeaderBar';
 import { checkAndUpdateStreakOnLoad, StudyActivityData } from './utils/analytics';
 import { 
   Sparkles, Plus, Search, BookOpen, Star, 
@@ -249,8 +250,11 @@ export default function App() {
   return (
     <div className="bg-[#fafbfc] min-h-screen text-slate-900 font-sans antialiased pb-16">
       <div className="no-print">
+        {/* Top bar for user GEMINI_API_KEY management */}
+        <ApiKeyHeaderBar />
+
         {/* Dynamic Header Navbar banner */}
-      <header className="sticky top-0 bg-white border-b border-slate-100 z-50">
+        <header className="sticky top-0 bg-white border-b border-slate-100 z-50">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div 
             onClick={() => {
