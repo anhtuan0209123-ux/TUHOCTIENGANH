@@ -134,104 +134,143 @@ export function generateOfflineStudySet(topic: string, amount: number = 8) {
   return { title, description, cards };
 }
 
+export function sanitizeCardTerm(term: string): string {
+  if (!term) return '';
+  return term.trim()
+    .replace(/^[\d\.\-\*\+\•\:\;\,\(\)\[\]\"\'\“\”\–\—\s]+/, '')
+    .replace(/[\:\;\,\"\'\“\”\–\—\s]+$/, '')
+    .trim();
+}
+
+export function isValidCardTerm(term: string): boolean {
+  const cleaned = sanitizeCardTerm(term);
+  if (!cleaned) return false;
+  if (cleaned.length < 2) {
+    const validShorts = ['ai', 'ui', 'ux', 'ip', 'os', 'it', 'db', 'qa'];
+    if (!validShorts.includes(cleaned.toLowerCase())) {
+      return false;
+    }
+  }
+  if (/^[^a-zA-Z0-9\u00C0-\u1EF9]+$/.test(cleaned)) {
+    return false;
+  }
+  return true;
+}
+
+export function parseLineToCard(line: string): { term: string; definition: string } | null {
+  if (!line) return null;
+  let raw = line.trim();
+  if (!raw) return null;
+
+  // Strip leading bullet numbers/symbols e.g. "1. ", "1/ ", "- ", "* ", "• "
+  raw = raw.replace(/^[\d\.\/\-\*\+\•\s]+/, '').trim();
+  if (!raw) return null;
+
+  let rawTerm = '';
+  let rawDef = '';
+
+  // 1. KIỂU 3: Dấu ngoặc đơn `Term (Definition)` -> e.g. "hello (chào)" or "Computer Vision (Thị giác máy tính)"
+  const parenMatch = raw.match(/^([^\(\)]+?)\s*\((.+?)\)\s*$/);
+  if (parenMatch) {
+    rawTerm = parenMatch[1];
+    rawDef = parenMatch[2];
+  }
+  // 2. KIỂU 1: Dấu hai chấm `:` -> e.g. "hello : chào" or "Deep Learning : Học sâu"
+  else if (raw.includes(':')) {
+    const colonIdx = raw.indexOf(':');
+    rawTerm = raw.substring(0, colonIdx);
+    rawDef = raw.substring(colonIdx + 1);
+  }
+  // 3. KIỂU 2: Dấu gạch ngang ` - `, ` – `, ` — `, or `-`, `–`, `—` -> e.g. "hello - chào"
+  else if (raw.includes(' - ') || raw.includes(' – ') || raw.includes(' — ')) {
+    const sepIdx = raw.indexOf(' - ') !== -1 ? raw.indexOf(' - ')
+                 : raw.indexOf(' – ') !== -1 ? raw.indexOf(' – ')
+                 : raw.indexOf(' — ');
+    rawTerm = raw.substring(0, sepIdx);
+    rawDef = raw.substring(sepIdx + 3);
+  } else if (raw.includes('-') || raw.includes('–') || raw.includes('—')) {
+    const dashMatch = raw.match(/^([^-–—]+)[-–—](.+)$/);
+    if (dashMatch) {
+      rawTerm = dashMatch[1];
+      rawDef = dashMatch[2];
+    }
+  }
+  // 4. Tab (\t), Pipe (|), Equal (=)
+  else if (raw.includes('\t')) {
+    const parts = raw.split('\t');
+    rawTerm = parts[0];
+    rawDef = parts.slice(1).join(' ');
+  } else if (raw.includes('|')) {
+    const parts = raw.split('|');
+    rawTerm = parts[0];
+    rawDef = parts.slice(1).join(' ');
+  } else if (raw.includes('=')) {
+    const parts = raw.split('=');
+    rawTerm = parts[0];
+    rawDef = parts.slice(1).join(' ');
+  }
+  // 5. 2 or more spaces
+  else if (/ {2,}/.test(raw)) {
+    const parts = raw.split(/ {2,}/);
+    rawTerm = parts[0];
+    rawDef = parts.slice(1).join(' ');
+  }
+  // 6. Single space separation e.g. "hello chào" -> Term: "hello", Def: "chào"
+  else {
+    const parts = raw.split(/\s+/);
+    if (parts.length >= 2) {
+      rawTerm = parts[0];
+      rawDef = parts.slice(1).join(' ');
+    } else {
+      rawTerm = raw;
+      rawDef = '';
+    }
+  }
+
+  const cleanTerm = sanitizeCardTerm(rawTerm);
+  const cleanDef = rawDef.trim();
+
+  if (!isValidCardTerm(cleanTerm)) {
+    return null;
+  }
+
+  return {
+    term: cleanTerm,
+    definition: cleanDef || `Định nghĩa cho ${cleanTerm}`
+  };
+}
+
 export function extractOfflineVocab(text: string) {
   const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   const cards: Array<{ term: string; definition: string; example: string; exampleTranslation?: string }> = [];
 
-  let looksLikeList = false;
-  let matches = 0;
-  lines.forEach(line => {
-    if (line.includes('\t') || line.includes('  ') || line.includes(' - ') || line.includes(' – ') || line.includes(':') || line.includes('=') || line.includes('|')) {
-      matches++;
+  lines.forEach((line) => {
+    const parsed = parseLineToCard(line);
+    if (parsed) {
+      cards.push({
+        term: parsed.term,
+        definition: parsed.definition,
+        example: `Ví dụ thực tế áp dụng ${parsed.term}.`
+      });
     }
   });
-  if (matches >= 2 || (lines.length >= 2 && lines.length <= 150)) {
-    looksLikeList = true;
-  }
 
-  if (looksLikeList) {
-    lines.forEach((line) => {
-      let term = '';
-      let definition = '';
-
-      if (line.includes('\t')) {
-        const parts = line.split('\t');
-        term = parts[0].trim();
-        definition = parts.slice(1).join(' ').trim();
-      } else if (line.includes('|')) {
-        const parts = line.split('|');
-        term = parts[0].trim();
-        definition = parts.slice(1).join(' ').trim();
-      } else if (line.includes('  ')) {
-        const parts = line.split(/ {2,}/);
-        term = parts[0].trim();
-        definition = parts.slice(1).join(' ').trim();
-      } else {
-        const separatorIndex = line.indexOf(' - ') !== -1 ? line.indexOf(' - ')
-                             : line.indexOf(' – ') !== -1 ? line.indexOf(' – ')
-                             : line.indexOf(':') !== -1 ? line.indexOf(':')
-                             : line.indexOf('-') !== -1 ? line.indexOf('-')
-                             : line.indexOf('=');
-
-        if (separatorIndex !== -1) {
-          term = line.substring(0, separatorIndex).trim();
-          definition = line.substring(separatorIndex + 1).trim();
-        } else {
-          const parts = line.split(/\s+/);
-          if (parts.length >= 2) {
-            term = parts[0].trim();
-            definition = parts.slice(1).join(' ').trim();
-          } else {
-            term = line;
-            definition = "Định nghĩa cho " + line;
-          }
-        }
-      }
-
-      term = term.replace(/^\d+[\.\s\-]+/, '').replace(/^[\-\*\+\s\•]+/, '').trim();
-
-      if (term && term.length > 0) {
+  if (cards.length === 0) {
+    const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 10);
+    sentences.slice(0, 15).forEach((st) => {
+      const parsed = parseLineToCard(st);
+      if (parsed) {
         cards.push({
-          term,
-          definition: definition || `Định nghĩa học tập hữu hiệu cho thuật ngữ "${term}".`,
-          example: `Ví dụ sử dụng thuật ngữ "${term}" chuẩn xác trong văn cảnh thực tế.`
+          term: parsed.term,
+          definition: parsed.definition,
+          example: st
         });
       }
     });
   }
 
-  if (cards.length === 0) {
-    const words = text
-      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'“]/g, " ")
-      .split(/\s+/)
-      .map(w => w.trim())
-      .filter(w => w.length > 3);
-
-    const uniqueWords = Array.from(new Set(words));
-    const cardCandidates = uniqueWords.slice(0, 25);
-
-    const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 8);
-
-    cardCandidates.forEach((word, idx) => {
-      let matchingSentence = sentences.find(s => s.toLowerCase().includes(word.toLowerCase())) || "";
-      if (!matchingSentence && sentences.length > 0) {
-        matchingSentence = sentences[idx % sentences.length];
-      }
-      if (matchingSentence.length > 120) {
-        matchingSentence = matchingSentence.slice(0, 117) + "...";
-      }
-
-      const termFormatted = word.charAt(0).toUpperCase() + word.slice(1);
-      cards.push({
-        term: termFormatted,
-        definition: `Từ vựng được trích xuất trực tiếp: "${word.toLowerCase()}" từ nội dung nguồn.`,
-        example: matchingSentence || `Mẫu ứng dụng ngữ cảnh cho thuật ngữ ${word.toLowerCase()}.`
-      });
-    });
-  }
-
   const title = "Học phần phân tích tự động";
-  const description = `Gồm ${cards.length} thẻ được tổng hợp chuẩn hóa từ nội dung nhập liệu của bạn.`;
+  const description = `Gồm ${cards.length} thẻ được tổng hợp chuẩn hóa từ tài liệu nguồn.`;
 
   return { title, description, cards };
 }
@@ -454,13 +493,16 @@ export async function analyzeVocabClient(text: string, language: string = "Vietn
 """
 ${text}
 """
-QUY TẮC BẮT BUỘC PHÂN TÍCH THUẬT NGỮ (SMART PARSING):
-- Bắt buộc phải xét nghĩa và giữ nguyên toàn bộ CỤM THUẬT NGỮ CHUYÊN NGÀNH, CỤM TỪ GHÉP hoặc COLLOCATIONS (Ví dụ: 'Deep Learning' -> 'Học sâu', 'Machine Learning' -> 'Máy học', 'Cân bằng hóa học' -> 'Chemical equilibrium', 'Lexical Resource' -> 'Vốn từ vựng').
-- TUYỆT ĐỐI KHÔNG ĐƯỢC tự ý cắt lẻ các từ ghép/cụm từ thành các từ đơn riêng biệt (CẤM cắt riêng 'Deep', 'Learning').
+QUY TẮC BẮT BUỘC BÓC TÁCH MẶT TRƯỚC VÀ MẶT SAU THẺ:
+1. TỰ ĐỘNG NHẬN DIỆN VÀ TÁCH THEO 3 ĐỊNH DẠNG CHUẨN KHI NICK NHẬP NỘI DUNG:
+   - KIỂU 1 (Dấu hai chấm ':'): "A : B" -> Mặt trước ('term') = "A", Mặt sau ('definition') = "B" (Ví dụ: "hello : chào" -> Mặt trước = "hello", Mặt sau = "chào").
+   - KIỂU 2 (Dấu gạch ngang '-' hoặc '–'): "A - B" -> Mặt trước ('term') = "A", Mặt sau ('definition') = "B" (Ví dụ: "Phản ứng xà phòng hóa - Thủy phân chất béo..." -> Mặt trước = "Phản ứng xà phòng hóa").
+   - KIỂU 3 (Dấu ngoặc đơn '()'): "A (B)" -> Mặt trước ('term') = "A", Mặt sau ('definition') = "B" (Ví dụ: "Computer Vision (Thị giác máy tính)" -> Mặt trước = "Computer Vision", Mặt sau = "Thị giác máy tính").
 
-1. Nếu là danh sách từ vựng (mỗi dòng 1 từ hoặc cặp từ-nghĩa), hãy trích xuất 100% đầy đủ tất cả các thuật ngữ.
-2. Nếu là văn bản dài, trích xuất 15 đến 30 cụm thuật ngữ nổi bật nhất.
-Mỗi thẻ gồm: 'term', 'definition' (bằng ${language}, cực kỳ đơn giản, ngắn gọn, trực diện), 'example' (câu ví dụ tiếng Anh ngắn), 'exampleTranslation' (bản dịch câu ví dụ).`;
+2. CẮT KHOẢNG TRẮNG THỪA (TRIM) CẢ 2 ĐẦU CỦA 'term' VÀ 'definition'.
+3. TUYỆT ĐỐI KHÔNG GỘP CẢ 2 TỪ DÍNH LIỀN THÀNH MẶT TRƯỚC (Ví dụ: CẤM gộp "hello chào" làm 1 mặt trước, phải tách Mặt trước = "hello", Mặt sau = "chào").
+4. MẶT TRƯỚC ('term'): Là cụm từ / thuật ngữ chuyên ngành (1-5 từ). Giữ nguyên toàn bộ cụm từ ghép ("Deep Learning", "Phản ứng xà phòng hóa", "Chiến thắng Bạch Đằng 938"). CẤM ký tự đơn lẻ rác như 'n', 'a', 'x'.
+5. MẶT SAU ('definition'): Định nghĩa/nghĩa ngắn gọn bằng ${language} (1-3 câu).`;
 
   const responseSchema = {
     type: "OBJECT",
@@ -495,7 +537,17 @@ Mỗi thẻ gồm: 'term', 'definition' (bằng ${language}, cực kỳ đơn gi
     });
 
     if (!response.text) throw new Error("Empty response");
-    return JSON.parse(cleanJsonText(response.text));
+    const parsed = JSON.parse(cleanJsonText(response.text));
+    if (parsed && Array.isArray(parsed.cards)) {
+      parsed.cards = parsed.cards
+        .map((c: any) => ({
+          ...c,
+          term: sanitizeCardTerm(c.term || ''),
+          definition: (c.definition || '').trim()
+        }))
+        .filter((c: any) => isValidCardTerm(c.term));
+    }
+    return parsed;
   } catch (err) {
     console.warn("Client Gemini analyzeVocab failed:", err);
     return extractOfflineVocab(text);

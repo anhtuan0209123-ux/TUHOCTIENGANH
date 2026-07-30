@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Brain, Loader2, ClipboardList, Sparkles, AlertCircle, FileText, Check, Zap } from 'lucide-react';
 import { StudySet } from '../types';
-import { analyzeVocabClient } from '../services/geminiClient';
+import { analyzeVocabClient, sanitizeCardTerm, isValidCardTerm, parseLineToCard } from '../services/geminiClient';
 
 interface AiGeneratorProps {
   onGenerated: (newSet: StudySet) => void;
@@ -61,51 +61,16 @@ export const AiGenerator: React.FC<AiGeneratorProps> = ({ onGenerated }) => {
     return () => clearInterval(interval);
   }, [isLoading]);
 
-  const parseTextToCards = (text: string, delim: 'auto' | 'tab' | 'dash' | 'colon'): any[] => {
+  const parseTextToCards = (text: string, _delim: 'auto' | 'tab' | 'dash' | 'colon'): any[] => {
     const rawLines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     const result: any[] = [];
 
     rawLines.forEach((line) => {
-      let term = '';
-      let definition = '';
-
-      if (delim === 'tab' || (delim === 'auto' && line.includes('\t'))) {
-        const parts = line.split('\t');
-        term = parts[0].trim();
-        definition = parts.slice(1).join(' ').trim();
-      } else if (delim === 'colon' || (delim === 'auto' && line.includes(':'))) {
-        const parts = line.split(':');
-        term = parts[0].trim();
-        definition = parts.slice(1).join(' ').trim();
-      } else if (delim === 'dash' || (delim === 'auto' && (line.includes(' - ') || line.includes(' – ') || line.includes(' — ')))) {
-        let separator = ' - ';
-        if (line.includes(' – ')) separator = ' – ';
-        else if (line.includes(' — ')) separator = ' — ';
-        const parts = line.split(separator);
-        term = parts[0].trim();
-        definition = parts.slice(1).join(' ').trim();
-      } else {
-        const separatorIndex = line.indexOf(' - ') !== -1 ? line.indexOf(' - ')
-                             : line.indexOf(' – ') !== -1 ? line.indexOf(' – ')
-                             : line.indexOf(':') !== -1 ? line.indexOf(':')
-                             : line.indexOf('-') !== -1 ? line.indexOf('-')
-                             : line.indexOf('=');
-        if (separatorIndex !== -1) {
-          term = line.substring(0, separatorIndex).trim();
-          definition = line.substring(separatorIndex + 1).trim();
-        } else {
-          term = line;
-          definition = "";
-        }
-      }
-
-      term = term.replace(/^\d+[\.\s\-]+/, '').replace(/^[\-\*\+\s\•]+/, '').trim();
-      definition = definition.trim();
-
-      if (term) {
+      const parsed = parseLineToCard(line);
+      if (parsed) {
         result.push({
-          term,
-          definition: definition || `Khái niệm trích xuất từ tài liệu`,
+          term: parsed.term,
+          definition: parsed.definition,
           example: ''
         });
       }

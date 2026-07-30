@@ -2,23 +2,33 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Card, StudySet } from '../types';
 import { 
   ArrowLeft, ArrowRight, Volume2, Shuffle, 
-  RotateCcw, Play, Pause, HelpCircle, Sparkles, Loader2, Filter, Info, Clock, Target
+  RotateCcw, Play, Pause, HelpCircle, Sparkles, Loader2, Filter, Info, Clock, Target,
+  Pencil, Trash2, X, Save
 } from 'lucide-react';
 import { trackStudyActivity } from '../utils/analytics';
-import { deepDiveClient } from '../services/geminiClient';
+import { deepDiveClient, sanitizeCardTerm, isValidCardTerm } from '../services/geminiClient';
 
 interface FlashcardViewerProps {
   set: StudySet;
   onBack: () => void;
   onStartQuiz?: () => void;
+  onUpdateSet?: (updatedSet: StudySet) => void;
 }
 
-export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({ set, onBack, onStartQuiz }) => {
+export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({ set, onBack, onStartQuiz, onUpdateSet }) => {
   const [cards, setCards] = useState<Card[]>([...set.cards]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [isShuffled, setIsShuffled] = useState(false);
+
+  // Quick edit & delete card states
+  const [editingCard, setEditingCard] = useState<Card | null>(null);
+  const [editTerm, setEditTerm] = useState('');
+  const [editDef, setEditDef] = useState('');
+  const [editExample, setEditExample] = useState('');
+  const [editError, setEditError] = useState<string | null>(null);
+  const [deleteConfirmCardId, setDeleteConfirmCardId] = useState<string | null>(null);
 
   // Spaced Repetition Local Database Storage
   const [filterDueOnly, setFilterDueOnly] = useState(false);
@@ -199,6 +209,52 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({ set, onBack, o
     }
   };
 
+  // Quick Edit & Delete Handlers
+  const handleOpenEditModal = (card: Card, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingCard(card);
+    setEditTerm(card.term);
+    setEditDef(card.definition);
+    setEditExample(card.example || '');
+    setEditError(null);
+  };
+
+  const handleSaveEditCard = () => {
+    const cleanTerm = sanitizeCardTerm(editTerm);
+    if (!isValidCardTerm(cleanTerm)) {
+      setEditError('Mặt trước (Thuật ngữ) bắt buộc là cụm từ/từ khóa từ 1-5 từ, không chứa ký tự rác đơn lẻ.');
+      return;
+    }
+    if (!editDef.trim()) {
+      setEditError('Mặt sau (Định nghĩa) không được để trống.');
+      return;
+    }
+
+    const updatedCards = cards.map(c => 
+      c.id === editingCard!.id 
+        ? { ...c, term: cleanTerm, definition: editDef.trim(), example: editExample.trim() } 
+        : c
+    );
+    setCards(updatedCards);
+    onUpdateSet?.({ ...set, cards: updatedCards });
+    setEditingCard(null);
+  };
+
+  const handleConfirmDeleteCard = (cardId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setDeleteConfirmCardId(cardId);
+  };
+
+  const executeDeleteCard = (cardId: string) => {
+    const updatedCards = cards.filter(c => c.id !== cardId);
+    setCards(updatedCards);
+    onUpdateSet?.({ ...set, cards: updatedCards });
+    setDeleteConfirmCardId(null);
+    if (currentIndex >= updatedCards.length && updatedCards.length > 0) {
+      setCurrentIndex(updatedCards.length - 1);
+    }
+  };
+
   // Auto playing timer
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -369,7 +425,26 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({ set, onBack, o
               {/* FRONT SIDE (Term) */}
               <div className="absolute w-full h-full bg-white border border-slate-200 rounded-2xl p-8 flex flex-col justify-between shadow-xs hover:border-brand/40 backface-hidden transition-all duration-300">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Thuật ngữ</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Thuật ngữ</span>
+                    {/* Quick Edit / Delete Buttons */}
+                    <button
+                      id={`quick-edit-card-btn-front-${currentCard.id}`}
+                      onClick={(e) => handleOpenEditModal(currentCard, e)}
+                      className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-brand rounded-lg transition-colors cursor-pointer"
+                      title="Sửa nhanh thẻ này (✏️)"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      id={`quick-delete-card-btn-front-${currentCard.id}`}
+                      onClick={(e) => handleConfirmDeleteCard(currentCard.id, e)}
+                      className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors cursor-pointer"
+                      title="Xóa thẻ này (🗑️)"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                   {(() => {
                     const record = spacedRepMap[`${set.id}_${currentCard.id}`];
                     if (!record) return null;
@@ -431,7 +506,25 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({ set, onBack, o
               {/* BACK SIDE (Definition) */}
               <div className="absolute w-full h-full bg-brand text-white rounded-2xl p-8 flex flex-col justify-between shadow-xs rotate-y-180 backface-hidden transition-all duration-300">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-widest text-blue-200">Định nghĩa & Ý nghĩa</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-blue-200">Định nghĩa & Ý nghĩa</span>
+                    <button
+                      id={`quick-edit-card-btn-back-${currentCard.id}`}
+                      onClick={(e) => handleOpenEditModal(currentCard, e)}
+                      className="p-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors cursor-pointer"
+                      title="Sửa nhanh thẻ này (✏️)"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      id={`quick-delete-card-btn-back-${currentCard.id}`}
+                      onClick={(e) => handleConfirmDeleteCard(currentCard.id, e)}
+                      className="p-1.5 bg-white/10 hover:bg-rose-500/30 text-white rounded-lg transition-colors cursor-pointer"
+                      title="Xóa thẻ này (🗑️)"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                   <div className="flex items-center gap-2">
                     {(() => {
                       const record = spacedRepMap[`${set.id}_${currentCard.id}`];
@@ -714,6 +807,121 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({ set, onBack, o
           <span>Phím tắt: Space (lật mặt), Phím 1/2/3 (đánh giá), Arrow keys (chuyển)</span>
         </div>
       </div>
+
+      {/* QUICK EDIT CARD MODAL */}
+      {editingCard && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in" onClick={() => setEditingCard(null)}>
+          <div className="bg-white w-full max-w-lg rounded-2xl border border-slate-100 p-6 shadow-xl animate-scale-up space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Pencil size={18} className="text-brand" />
+                <span>Chỉnh sửa nhanh thẻ ghi nhớ</span>
+              </h3>
+              <button onClick={() => setEditingCard(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
+
+            {editError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+                <Info size={16} className="shrink-0" />
+                <span>{editError}</span>
+              </div>
+            )}
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Mặt trước (Thuật ngữ / Cụm từ 1-5 từ):</label>
+                <input
+                  id="quick-edit-term-input"
+                  type="text"
+                  value={editTerm}
+                  onChange={(e) => setEditTerm(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                  placeholder="Nhập thuật ngữ hoặc cụm từ ghép..."
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Mặt sau (Định nghĩa / Dịch nghĩa):</label>
+                <textarea
+                  id="quick-edit-def-input"
+                  rows={3}
+                  value={editDef}
+                  onChange={(e) => setEditDef(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                  placeholder="Nhập định nghĩa giải thích ngắn gọn..."
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Ví dụ minh họa (Tùy chọn):</label>
+                <input
+                  id="quick-edit-example-input"
+                  type="text"
+                  value={editExample}
+                  onChange={(e) => setEditExample(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                  placeholder="Ví dụ ngữ cảnh thực tế..."
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setEditingCard(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEditCard}
+                className="px-4 py-2 text-xs font-bold text-white bg-brand hover:bg-brand-hover rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Save size={14} />
+                <span>Lưu thay đổi</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK DELETE CARD CONFIRMATION MODAL */}
+      {deleteConfirmCardId && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in" onClick={() => setDeleteConfirmCardId(null)}>
+          <div className="bg-white w-full max-w-md rounded-2xl border border-slate-100 p-6 shadow-xl animate-scale-up space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="p-2 bg-rose-50 rounded-full">
+                <Trash2 size={22} />
+              </div>
+              <h3 className="text-base font-bold">Xác nhận xóa thẻ này</h3>
+            </div>
+
+            <p className="text-slate-600 text-xs leading-relaxed font-semibold">
+              Bạn có chắc chắn muốn xóa thẻ này ra khỏi bộ bài không?
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmCardId(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={() => executeDeleteCard(deleteConfirmCardId)}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs cursor-pointer"
+              >
+                Xác nhận xóa ngay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StudySet, StudyMode, Folder } from './types';
 import { presetStudySets } from './presets';
+import { sanitizeCardTerm, isValidCardTerm } from './services/geminiClient';
 import { SetCard } from './components/SetCard';
 import { AiGenerator } from './components/AiGenerator';
 import { SetCreator } from './components/SetCreator';
@@ -71,10 +72,33 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setStudySets(parsed);
+        if (Array.isArray(parsed)) {
+          const sanitizedSets = parsed.map((set: any) => ({
+            ...set,
+            cards: (set.cards || [])
+              .map((c: any) => ({
+                ...c,
+                term: sanitizeCardTerm(c.term || ''),
+                definition: (c.definition || '').trim()
+              }))
+              .filter((c: any) => isValidCardTerm(c.term))
+          })).filter((set: any) => set.cards && set.cards.length > 0);
+
+          if (sanitizedSets.length > 0) {
+            setStudySets(sanitizedSets);
+            localStorage.setItem('quizlet_clone_sets', JSON.stringify(sanitizedSets));
+          } else {
+            setStudySets(presetStudySets);
+            localStorage.setItem('quizlet_clone_sets', JSON.stringify(presetStudySets));
+          }
+        } else {
+          setStudySets(presetStudySets);
+          localStorage.setItem('quizlet_clone_sets', JSON.stringify(presetStudySets));
+        }
       } catch (e) {
         console.error("Error parsing local study sets:", e);
         setStudySets(presetStudySets);
+        localStorage.setItem('quizlet_clone_sets', JSON.stringify(presetStudySets));
       }
     } else {
       // populate standard presets
@@ -344,6 +368,11 @@ export default function App() {
                 set={currentSet} 
                 onBack={() => setActiveMode(null)} 
                 onStartQuiz={() => setActiveMode('quiz')}
+                onUpdateSet={(updatedSet) => {
+                  const updatedSets = studySets.map(s => s.id === updatedSet.id ? updatedSet : s);
+                  saveStudySets(updatedSets);
+                  setCurrentSet(updatedSet);
+                }}
               />
             )}
             {activeMode === 'learn' && (

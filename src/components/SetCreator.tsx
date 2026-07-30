@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, StudySet } from '../types';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { checkIsRepeatedTerm } from '../utils/stringMatcher';
+import { sanitizeCardTerm, isValidCardTerm, parseLineToCard } from '../services/geminiClient';
 
 interface SetCreatorProps {
   initialSet?: StudySet | null; // If editing
@@ -51,59 +52,12 @@ export const SetCreator: React.FC<SetCreatorProps> = ({
     const newParsedCards: Card[] = [];
 
     lines.forEach((line, index) => {
-      let term = '';
-      let definition = '';
-
-      // Support tab, colon, dash, equals, vertical bar, double space separator
-      if (delimiter === 'tab' || (delimiter === 'auto' && line.includes('\t'))) {
-        const parts = line.split('\t');
-        term = parts[0].trim();
-        definition = parts.slice(1).join(' ').trim();
-      } else if (delimiter === 'colon' || (delimiter === 'auto' && line.includes(':'))) {
-        const parts = line.split(':');
-        term = parts[0].trim();
-        definition = parts.slice(1).join(' ').trim();
-      } else if (delimiter === 'dash' || (delimiter === 'auto' && (line.includes(' - ') || line.includes(' – ') || line.includes(' — ')))) {
-        let separator = ' - ';
-        if (line.includes(' – ')) separator = ' – ';
-        else if (line.includes(' — ')) separator = ' — ';
-        const parts = line.split(separator);
-        term = parts[0].trim();
-        definition = parts.slice(1).join(' ').trim();
-      } else if (delimiter === 'auto' && line.includes('  ')) {
-        const parts = line.split(/ {2,}/);
-        term = parts[0].trim();
-        definition = parts.slice(1).join(' ').trim();
-      } else {
-        const separatorIndex = line.indexOf(' - ') !== -1 ? line.indexOf(' - ')
-                             : line.indexOf(' – ') !== -1 ? line.indexOf(' – ')
-                             : line.indexOf(':') !== -1 ? line.indexOf(':')
-                             : line.indexOf('-') !== -1 ? line.indexOf('-')
-                             : line.indexOf('=');
-        if (separatorIndex !== -1) {
-          term = line.substring(0, separatorIndex).trim();
-          definition = line.substring(separatorIndex + 1).trim();
-        } else {
-          // split by first group of whitespaces if no delimiters match
-          const parts = line.split(/\s+/);
-          if (parts.length >= 2) {
-            term = parts[0].trim();
-            definition = parts.slice(1).join(' ').trim();
-          } else {
-            term = line;
-            definition = "Định nghĩa cho " + line;
-          }
-        }
-      }
-
-      // Strip leading bullet formats e.g. "1. obvious" or "- obvious"
-      term = term.replace(/^\d+[\.\s\-]+/, '').replace(/^[\-\*\+\s\•]+/, '').trim();
-
-      if (term) {
+      const parsed = parseLineToCard(line);
+      if (parsed) {
         newParsedCards.push({
           id: `manual-card-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 7)}`,
-          term,
-          definition: definition || `Định nghĩa học tập cho "${term}"`,
+          term: parsed.term,
+          definition: parsed.definition,
           example: ''
         });
       }
@@ -161,11 +115,17 @@ export const SetCreator: React.FC<SetCreatorProps> = ({
     }
 
     // Validate cards
-    const emptyCards = cards.filter(
-      (c) => !c.term.trim() || !c.definition.trim()
+    const cleanedCards = cards.map(c => ({
+      ...c,
+      term: sanitizeCardTerm(c.term),
+      definition: c.definition.trim()
+    }));
+
+    const invalidCards = cleanedCards.filter(
+      (c) => !isValidCardTerm(c.term) || !c.definition
     );
-    if (emptyCards.length > 0) {
-      setErrorMsg('Vui lòng điền đầy đủ Thuật ngữ và Định nghĩa cho tất cả các thẻ!');
+    if (invalidCards.length > 0) {
+      setErrorMsg('Vui lòng nhập Mặt trước (Thuật ngữ: cụm từ/từ khóa từ 1-5 từ, không chứa ký tự rác) và Định nghĩa đầy đủ cho các thẻ!');
       return;
     }
 

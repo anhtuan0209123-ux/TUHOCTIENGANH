@@ -241,77 +241,104 @@ function generateOfflineStudySet(topic: string, amount: number = 8) {
   return { title, description, cards };
 }
 
+function parseLineToCardServer(line: string): { term: string; definition: string } | null {
+  if (!line) return null;
+  let raw = line.trim();
+  if (!raw) return null;
+
+  // Strip leading numbering or bullet symbols e.g. "1. ", "1/ ", "- ", "* ", "• "
+  raw = raw.replace(/^[\d\.\/\-\*\+\•\s]+/, '').trim();
+  if (!raw) return null;
+
+  let rawTerm = '';
+  let rawDef = '';
+
+  // 1. KIỂU 3: Dấu ngoặc đơn `Term (Definition)` -> e.g. "hello (chào)" or "Computer Vision (Thị giác máy tính)"
+  const parenMatch = raw.match(/^([^\(\)]+?)\s*\((.+?)\)\s*$/);
+  if (parenMatch) {
+    rawTerm = parenMatch[1];
+    rawDef = parenMatch[2];
+  }
+  // 2. KIỂU 1: Dấu hai chấm `:` -> e.g. "hello : chào" or "Deep Learning : Học sâu"
+  else if (raw.includes(':')) {
+    const colonIdx = raw.indexOf(':');
+    rawTerm = raw.substring(0, colonIdx);
+    rawDef = raw.substring(colonIdx + 1);
+  }
+  // 3. KIỂU 2: Dấu gạch ngang ` - `, ` – `, ` — `, or `-`, `–`, `—` -> e.g. "hello - chào"
+  else if (raw.includes(' - ') || raw.includes(' – ') || raw.includes(' — ')) {
+    const sepIdx = raw.indexOf(' - ') !== -1 ? raw.indexOf(' - ')
+                 : raw.indexOf(' – ') !== -1 ? raw.indexOf(' – ')
+                 : raw.indexOf(' — ');
+    rawTerm = raw.substring(0, sepIdx);
+    rawDef = raw.substring(sepIdx + 3);
+  } else if (raw.includes('-') || raw.includes('–') || raw.includes('—')) {
+    const dashMatch = raw.match(/^([^-–—]+)[-–—](.+)$/);
+    if (dashMatch) {
+      rawTerm = dashMatch[1];
+      rawDef = dashMatch[2];
+    }
+  }
+  // 4. Tab (\t), Pipe (|), Equal (=)
+  else if (raw.includes('\t')) {
+    const parts = raw.split('\t');
+    rawTerm = parts[0];
+    rawDef = parts.slice(1).join(' ');
+  } else if (raw.includes('|')) {
+    const parts = raw.split('|');
+    rawTerm = parts[0];
+    rawDef = parts.slice(1).join(' ');
+  } else if (raw.includes('=')) {
+    const parts = raw.split('=');
+    rawTerm = parts[0];
+    rawDef = parts.slice(1).join(' ');
+  }
+  // 5. 2 or more spaces
+  else if (/ {2,}/.test(raw)) {
+    const parts = raw.split(/ {2,}/);
+    rawTerm = parts[0];
+    rawDef = parts.slice(1).join(' ');
+  }
+  // 6. Single space separation e.g. "hello chào" -> Term: "hello", Def: "chào"
+  else {
+    const parts = raw.split(/\s+/);
+    if (parts.length >= 2) {
+      rawTerm = parts[0];
+      rawDef = parts.slice(1).join(' ');
+    } else {
+      rawTerm = raw;
+      rawDef = '';
+    }
+  }
+
+  const cleanTerm = rawTerm.replace(/^[\d\.\-\*\+\•\:\;\,\(\)\[\]\"\'\“\”\–\—\s]+/, '').replace(/[\:\;\,\"\'\“\”\–\—\s]+$/, '').trim();
+  const cleanDef = rawDef.trim();
+
+  if (!cleanTerm || cleanTerm.length < 1) {
+    return null;
+  }
+
+  return {
+    term: cleanTerm,
+    definition: cleanDef || `Định nghĩa cho ${cleanTerm}`
+  };
+}
+
 // Local fallback text analyzer when Gemini API is overloaded/503/missing keys
 function extractOfflineVocab(text: string) {
   const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   const cards: Array<{ term: string; definition: string; example: string; exampleTranslation?: string }> = [];
 
-  // Check if it looks like a list vs a general paragraph
-  let looksLikeList = false;
-  let matches = 0;
-  lines.forEach(line => {
-    if (line.includes('\t') || line.includes('  ') || line.includes(' - ') || line.includes(' – ') || line.includes(':') || line.includes('=') || line.includes('|')) {
-      matches++;
+  lines.forEach((line) => {
+    const parsed = parseLineToCardServer(line);
+    if (parsed) {
+      cards.push({
+        term: parsed.term,
+        definition: parsed.definition,
+        example: `Ví dụ sử dụng thuật ngữ "${parsed.term}" chuẩn xác trong văn cảnh thực tế.`
+      });
     }
   });
-  if (matches >= 2 || (lines.length >= 2 && lines.length <= 150)) {
-    looksLikeList = true;
-  }
-
-  if (looksLikeList) {
-    lines.forEach((line, index) => {
-      let term = '';
-      let definition = '';
-
-      // Prioritize tab split first, then vertical bar, then double spaces, then common punctuations
-      if (line.includes('\t')) {
-        const parts = line.split('\t');
-        term = parts[0].trim();
-        definition = parts.slice(1).join(' ').trim();
-      } else if (line.includes('|')) {
-        const parts = line.split('|');
-        term = parts[0].trim();
-        definition = parts.slice(1).join(' ').trim();
-      } else if (line.includes('  ')) {
-        // split by 2 or more spaces
-        const parts = line.split(/ {2,}/);
-        term = parts[0].trim();
-        definition = parts.slice(1).join(' ').trim();
-      } else {
-        const separatorIndex = line.indexOf(' - ') !== -1 ? line.indexOf(' - ')
-                             : line.indexOf(' – ') !== -1 ? line.indexOf(' – ')
-                             : line.indexOf(':') !== -1 ? line.indexOf(':')
-                             : line.indexOf('-') !== -1 ? line.indexOf('-')
-                             : line.indexOf('=');
-
-        if (separatorIndex !== -1) {
-          term = line.substring(0, separatorIndex).trim();
-          definition = line.substring(separatorIndex + 1).trim();
-        } else {
-          // Fall back to first space split if no delimiter at all
-          const parts = line.split(/\s+/);
-          if (parts.length >= 2) {
-            term = parts[0].trim();
-            definition = parts.slice(1).join(' ').trim();
-          } else {
-            term = line;
-            definition = "Định nghĩa cho " + line;
-          }
-        }
-      }
-
-      // Clean prefix numbers/bullets like "1. obvious" or "- obvious" -> "obvious"
-      term = term.replace(/^\d+[\.\s\-]+/, '').replace(/^[\-\*\+\s\•]+/, '').trim();
-
-      if (term && term.length > 0) {
-        cards.push({
-          term,
-          definition: definition || `Định nghĩa học tập hữu hiệu cho thuật ngữ "${term}".`,
-          example: `Ví dụ sử dụng thuật ngữ "${term}" chuẩn xác trong văn cảnh thực tế.`
-        });
-      }
-    });
-  }
 
   // If we can't extract as list, fall back to paragraph parsing
   if (cards.length === 0) {
@@ -751,18 +778,21 @@ async function startServer() {
         ${text}
         """
 
-        YÊU CẦU PHÂN TÍCH VÀ TRÍCH XUẤT CỰC KỲ KHẮT KHE:
-        1. PHÁT HIỆN SỰ LIỆT KÊ (LIST DETECT): Hãy kiểm tra xem văn bản nguồn có phải là dạng danh sách từ vựng hay không (ví dụ: mỗi dòng chứa một từ, hoặc các cặp song hành "từ - nghĩa", "từ: định nghĩa", "từ\tnghĩa", v.v.).
-        2. BẮT BUỘC TRÍCH XUẤT ĐẦY ĐỦ 100% (KHÔNG GIỚI HẠN): Nếu văn bản nguồn là một danh sách từ vựng dạng dòng, bạn BẮT BUỘC phải tạo đầy đủ 100% số lượng thẻ cho tất cả các từ được ghi nhận. KHÔNG ĐƯỢC tự ý lược bỏ, tóm tắt hoặc gom cụm lười biếng. Ví dụ, nếu danh sách có 31 từ vựng, bạn BẮT BUỘC phải trả về đúng 31 thẻ ghi nhớ. Tuyệt đối KHÔNG được giới hạn kết quả trả về trong mức 8 thẻ hoặc bất cứ ranh giới nào!
-        3. TRƯỜNG HỢP VĂN BẢN DÀI: Nếu nguồn là một câu chuyện, bài báo, bài viết hoặc đoạn văn học thuật dài, hãy quét kỹ và trích xuất từ 15 đến 30 từ vựng/cụm từ nổi bật nhất phục vụ học tập sâu.
-        
-        Đối đối với mỗi thẻ được tạo ra:
-        - 'term': Cụm từ/Từ khóa thô từ văn bản nguồn (Giữ nguyên viết hoa thường tương xứng).
-        - 'definition': Định nghĩa, giải nghĩa chuẩn xác và CỰC KỲ ĐƠN GIẢN, NGẮN GỌN, TRỰC DIỆN, DỄ HỌC BẰNG ${language}. Nghĩa đơn giản thôi, dễ hiểu và dễ nhớ nhất cho học viên, tránh các giải thích rườm rà dài dòng phức tạp. Nếu người dùng đã cung cấp sẵn định nghĩa thô bên cạnh từ vựng đó, hãy giữ lấy định nghĩa cốt lõi đơn giản đó và bổ sung hoặc chỉnh sửa cho súc tích, mượt mà hơn.
-        - 'example': Đặt một câu ví dụ ngắn gọn, tự nhiên có chứa từ 'term' đó bằng tiếng Anh.
-        - 'exampleTranslation': Bản dịch nghĩa hoàn chỉnh sang tiếng Việt của câu ví dụ 'example' nêu trên.
+        QUY TẮC BẮT BUỘC BÓC TÁCH MẶT TRƯỚC VÀ MẶT SAU THẺ DỰA TRÊN 3 ĐỊNH DẠNG CHUẨN:
+        1. NHẬN DIỆN VÀ PHÂN TÁCH CHÍNH XÁC:
+           - KIỂU 1 (Dấu hai chấm ':'): "A : B" -> Mặt trước ('term') = "A", Mặt sau ('definition') = "B" (Ví dụ: "hello : chào" -> Mặt trước = "hello", Mặt sau = "chào").
+           - KIỂU 2 (Dấu gạch ngang '-' hoặc '–'): "A - B" -> Mặt trước ('term') = "A", Mặt sau ('definition') = "B" (Ví dụ: "Phản ứng xà phòng hóa - Thủy phân chất béo..." -> Mặt trước = "Phản ứng xà phòng hóa").
+           - KIỂU 3 (Dấu ngoặc đơn '()'): "A (B)" -> Mặt trước ('term') = "A", Mặt sau ('definition') = "B" (Ví dụ: "Computer Vision (Thị giác máy tính)" -> Mặt trước = "Computer Vision", Mặt sau = "Thị giác máy tính").
 
-        Hãy thiết lập tiêu đề (title) thật lôi cuốn đại diện cho học phần (ví dụ: từ vựng chuyên ngành hoặc danh sách học thuật) và mô tả (description) tóm tắt sắc sảo nhất.`;
+        2. TỰ ĐỘNG CẮT KHOẢNG TRẮNG THỪA (TRIM) CẢ 2 ĐẦU MẶT TRƯỚC VÀ MẶT SAU.
+        3. TUYỆT ĐỐI KHÔNG GỘP CẢ 2 TỪ DÍNH LIỀN THÀNH MẶT TRƯỚC (Ví dụ: CẤM gộp "hello chào" làm 1 mặt trước, bắt buộc tách Mặt trước = "hello", Mặt sau = "chào").
+        4. BẮT BUỘC TRÍCH XUẤT ĐẦY ĐỦ 100%: Nếu văn bản nguồn là danh sách từng dòng, tạo 100% đầy đủ tất cả thẻ. Không tự ý cắt bớt hay lược bỏ.
+        
+        Đối với mỗi thẻ được tạo ra:
+        - 'term': Cụm từ / thuật ngữ chuyên ngành (1-5 từ).
+        - 'definition': Định nghĩa/nghĩa súc tích bằng ${language}.
+        - 'example': Câu ví dụ tiếng Anh ngắn gọn chứa 'term'.
+        - 'exampleTranslation': Bản dịch nghĩa tiếng Việt tương ứng của câu 'example'.`;
 
         let response;
         try {
