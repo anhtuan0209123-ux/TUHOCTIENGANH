@@ -275,11 +275,41 @@ export function extractOfflineVocab(text: string) {
   return { title, description, cards };
 }
 
+export const FRIENDLY_PERMISSION_ERROR = "API Key không hợp lệ hoặc không có quyền truy cập. Vui lòng kiểm tra lại Key hoặc đổi sang API Key từ tài khoản Gmail cá nhân.";
+
+export function isPermissionOrKeyError(error: any): boolean {
+  if (!error) return false;
+  const errStr = String(error?.message || error?.error?.message || error || "").toLowerCase();
+  const status = error?.status || error?.statusCode || error?.response?.status;
+  return (
+    status === 403 ||
+    status === 401 ||
+    errStr.includes("403") ||
+    errStr.includes("401") ||
+    errStr.includes("permission denied") ||
+    errStr.includes("permission_denied") ||
+    errStr.includes("api_key_invalid") ||
+    errStr.includes("api key not valid") ||
+    errStr.includes("invalid api key") ||
+    errStr.includes("unauthorized") ||
+    errStr.includes("key_invalid") ||
+    errStr.includes("key invalid") ||
+    errStr.includes("permission")
+  );
+}
+
 // Client-side Gemini SDK instance creator
 function getClientGemini(): GoogleGenAI | null {
   const apiKey = getStoredGeminiKey();
-  if (!apiKey) return null;
-  return new GoogleGenAI({ apiKey });
+  if (!apiKey || !apiKey.trim()) return null;
+  return new GoogleGenAI({
+    apiKey: apiKey.trim(),
+    httpOptions: {
+      headers: {
+        "User-Agent": "aistudio-build",
+      }
+    }
+  });
 }
 
 function cleanJsonText(rawText: string): string {
@@ -337,7 +367,7 @@ QUY TẮC CẮT THẺ & DỊCH NGHĨA CHUẨN ĐẮC THÙ THUẬT NGỮ:
     let response;
     try {
       response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-1.5-flash",
         contents: prompt,
         config: {
           systemInstruction: "Bạn là một giáo sư sư phạm và chuyên gia xây dựng tài liệu học tập. Cung cấp nội dung cô đọng, dễ hiểu.",
@@ -347,7 +377,7 @@ QUY TẮC CẮT THẺ & DỊCH NGHĨA CHUẨN ĐẮC THÙ THUẬT NGỮ:
       });
     } catch {
       response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-1.5-flash",
         contents: prompt,
         config: {
           systemInstruction: "Bạn là một giáo sư sư phạm và chuyên gia xây dựng tài liệu học tập.",
@@ -360,6 +390,7 @@ QUY TẮC CẮT THẺ & DỊCH NGHĨA CHUẨN ĐẮC THÙ THUẬT NGỮ:
     if (!response.text) throw new Error("Empty response");
     return JSON.parse(cleanJsonText(response.text));
   } catch (err) {
+    if (isPermissionOrKeyError(err)) throw new Error(FRIENDLY_PERMISSION_ERROR);
     console.warn("Client Gemini generateSet failed, using offline fallback:", err);
     return generateOfflineStudySet(topic, amount);
   }
@@ -401,7 +432,7 @@ Các từ mới tạo KHÔNG ĐƯỢC trùng lặp với bất kỳ từ nào tr
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -412,6 +443,7 @@ Các từ mới tạo KHÔNG ĐƯỢC trùng lặp với bất kỳ từ nào tr
     if (!response.text) throw new Error("Empty response");
     return JSON.parse(cleanJsonText(response.text));
   } catch (err) {
+    if (isPermissionOrKeyError(err)) throw new Error(FRIENDLY_PERMISSION_ERROR);
     console.warn("Client Gemini generateMoreCards failed:", err);
     const offlineSet = generateOfflineStudySet(topic, 12);
     const filteredCards = offlineSet.cards.filter(c => !existingTerms.some((existing: string) => existing.toLowerCase().trim() === c.term.toLowerCase().trim())).slice(0, amount);
@@ -459,7 +491,7 @@ Trả về JSON chính xác:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -470,6 +502,7 @@ Trả về JSON chính xác:
     if (!response.text) throw new Error("Empty response");
     return JSON.parse(cleanJsonText(response.text));
   } catch (err) {
+    if (isPermissionOrKeyError(err)) throw new Error(FRIENDLY_PERMISSION_ERROR);
     console.warn("Client Gemini deepDive failed:", err);
     return {
       essence: `💡 Mẹo nhớ từ "${term}": Liên tưởng khái niệm này tới những hình ảnh thực tế. Bản chất của khái niệm này giúp xử lý công việc trực diện hơn.`,
@@ -528,7 +561,7 @@ QUY TẮC BẮT BUỘC BÓC TÁCH MẶT TRƯỚC VÀ MẶT SAU THẺ:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -549,6 +582,7 @@ QUY TẮC BẮT BUỘC BÓC TÁCH MẶT TRƯỚC VÀ MẶT SAU THẺ:
     }
     return parsed;
   } catch (err) {
+    if (isPermissionOrKeyError(err)) throw new Error(FRIENDLY_PERMISSION_ERROR);
     console.warn("Client Gemini analyzeVocab failed:", err);
     return extractOfflineVocab(text);
   }
@@ -585,7 +619,7 @@ Trả về JSON: { "sentences": [ { "sentence": "...", "translation": "..." } ] 
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -596,6 +630,7 @@ Trả về JSON: { "sentences": [ { "sentence": "...", "translation": "..." } ] 
     if (!response.text) throw new Error("Empty response");
     return JSON.parse(cleanJsonText(response.text));
   } catch (err) {
+    if (isPermissionOrKeyError(err)) throw new Error(FRIENDLY_PERMISSION_ERROR);
     console.warn("Client Gemini generateDynamicSentences failed:", err);
     return { sentences: getMultipleDiverseServerSentences(term, definition) };
   }
@@ -657,7 +692,7 @@ export async function checkVocabQualityClient(term: string, definition?: string)
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -668,6 +703,7 @@ export async function checkVocabQualityClient(term: string, definition?: string)
     if (!response.text) throw new Error("Empty response");
     return JSON.parse(cleanJsonText(response.text));
   } catch (err) {
+    if (isPermissionOrKeyError(err)) throw new Error(FRIENDLY_PERMISSION_ERROR);
     console.warn("Client Gemini checkVocabQuality failed:", err);
     const divEx = getDiverseServerExample(term, definition);
     return {
@@ -753,7 +789,7 @@ ${JSON.stringify(cards.map((c) => ({ id: c.id, term: c.term, definition: c.defin
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -764,6 +800,7 @@ ${JSON.stringify(cards.map((c) => ({ id: c.id, term: c.term, definition: c.defin
     if (!response.text) throw new Error("Empty response");
     return JSON.parse(cleanJsonText(response.text));
   } catch (err) {
+    if (isPermissionOrKeyError(err)) throw new Error(FRIENDLY_PERMISSION_ERROR);
     console.warn("Client Gemini checkVocabBulk failed:", err);
     const completeList = cards.map((c) => {
       const divEx = getDiverseServerExample(c.term, c.definition);
@@ -818,7 +855,7 @@ Yêu cầu câu hỏi:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -829,6 +866,7 @@ Yêu cầu câu hỏi:
     if (!response.text) throw new Error("Empty response");
     return JSON.parse(cleanJsonText(response.text));
   } catch (err) {
+    if (isPermissionOrKeyError(err)) throw new Error(FRIENDLY_PERMISSION_ERROR);
     console.warn("Client Gemini generateReviveQuiz failed:", err);
     const correctAns = fallbackCard.term;
     const otherTerms = (cards || []).filter((c) => c.term !== correctAns).map((c) => c.term);
@@ -864,7 +902,7 @@ export async function campaignChatClient(promptText: string) {
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: promptText,
       config: {
         systemInstruction,
@@ -874,6 +912,7 @@ export async function campaignChatClient(promptText: string) {
 
     return { text: response.text || "Hãy tiếp tục giữ vững tinh thần kỷ luật!" };
   } catch (err) {
+    if (isPermissionOrKeyError(err)) throw new Error(FRIENDLY_PERMISSION_ERROR);
     console.warn("Client Gemini campaignChat failed:", err);
     return {
       text: "⚠️ **Lỗi truy vấn AI:** Hãy kiểm tra lại API Key ở góc trên màn hình.\n\n" +
@@ -959,7 +998,7 @@ BẮT BUỘC TRẢ VỀ kết quả dưới dạng JSON có cấu trúc sau:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         systemInstruction,
@@ -971,6 +1010,7 @@ BẮT BUỘC TRẢ VỀ kết quả dưới dạng JSON có cấu trúc sau:
     if (!response.text) throw new Error("Empty response");
     return JSON.parse(cleanJsonText(response.text));
   } catch (err) {
+    if (isPermissionOrKeyError(err)) throw new Error(FRIENDLY_PERMISSION_ERROR);
     console.warn("Client Gemini academicAudit failed:", err);
     return {
       status_spelling: "CHÍNH XÁC",

@@ -14,6 +14,7 @@ import { SoccerPenalty } from './components/SoccerPenalty';
 import { ExportPdfModal } from './components/ExportPdfModal';
 import { ReviewLogPanel } from './components/ReviewLogPanel';
 import { FolderPanel } from './components/FolderPanel';
+import { HelpCenterModal } from './components/HelpCenterModal';
 import { ReviewLog } from './types';
 
 export function getSetCategory(s: StudySet): 'languages' | 'tech' | 'stem' | 'social' {
@@ -59,12 +60,22 @@ export default function App() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showAddToFolderModal, setShowAddToFolderModal] = useState<StudySet | null>(null);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
+  const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [streakInfo, setStreakInfo] = useState<StudyActivityData>({
     currentStreak: 0,
     longestStreak: 0,
     lastStudyDate: '',
     activityLog: {}
   });
+
+  // Listen for global open help center requests
+  useEffect(() => {
+    const handleOpenHelp = () => {
+      setShowHelpCenter(true);
+    };
+    window.addEventListener('open-help-center', handleOpenHelp);
+    return () => window.removeEventListener('open-help-center', handleOpenHelp);
+  }, []);
 
   // Load study sets and folders from localStorage on first boot
   useEffect(() => {
@@ -314,7 +325,19 @@ export default function App() {
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            {/* Help & Guide Center Button */}
+            <button
+              id="header-help-center-btn"
+              onClick={() => setShowHelpCenter(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-light hover:bg-indigo-100 text-brand font-extrabold text-xs rounded-xl transition cursor-pointer shadow-2xs border border-brand/10 hover:border-brand/20"
+              title="Trung tâm Hướng dẫn & Video Tutorial"
+            >
+              <HelpCircle size={16} className="text-brand" />
+              <span className="hidden sm:inline">Hướng dẫn & Trợ giúp</span>
+              <span className="sm:hidden">Trợ giúp</span>
+            </button>
+
             {/* Duolingo Streak Flame Badge */}
             <div 
               id="header-streak-badge"
@@ -753,6 +776,13 @@ export default function App() {
                   >
                     <Sparkles size={16} className="text-brand" /> Bóc tách tài liệu AI
                   </button>
+                  <button
+                    id="hero-open-help-center"
+                    onClick={() => setShowHelpCenter(true)}
+                    className="px-5 py-3 bg-indigo-50 text-brand border border-indigo-200/80 hover:bg-indigo-100/80 rounded-lg font-bold text-sm flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    <HelpCircle size={16} /> Hướng dẫn & Video
+                  </button>
                 </div>
               </div>
             </div>
@@ -1185,6 +1215,18 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Academic Help Center Modal */}
+      <HelpCenterModal
+        isOpen={showHelpCenter}
+        onClose={() => setShowHelpCenter(false)}
+        onNavigateToTab={(tab) => {
+          setActiveTab(tab);
+          setCurrentSet(null);
+          setActiveMode(null);
+          setIsEditing(false);
+        }}
+      />
     </div>
   );
 }

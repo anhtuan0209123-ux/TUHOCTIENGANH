@@ -615,7 +615,11 @@ export function DisciplineCampaign() {
           { sender: 'ai', text: "🔑 **Khóa API Cá Nhân Kích Hoạt Thành Công!** Giờ đây tôi sẽ trực tiếp trả lời bạn với toàn bộ hiệu suất phân tích sâu rộng nhất từ tài khoản của bạn." }
         ]);
       } else {
-        throw new Error(data.error?.message || "Khóa API không hợp lệ.");
+        const errMsg = data.error?.message || "";
+        if (response.status === 403 || errMsg.toLowerCase().includes("permission") || errMsg.toLowerCase().includes("key")) {
+          throw new Error("API Key không hợp lệ hoặc không có quyền truy cập. Vui lòng kiểm tra lại Key hoặc đổi sang API Key từ tài khoản Gmail cá nhân.");
+        }
+        throw new Error(errMsg || "Khóa API không hợp lệ.");
       }
     } catch (e: any) {
       localStorage.removeItem('gemini_api_key');

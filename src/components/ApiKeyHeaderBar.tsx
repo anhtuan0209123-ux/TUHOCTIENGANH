@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Key, Check, Eye, EyeOff, ExternalLink, AlertTriangle, Trash2, Sparkles } from 'lucide-react';
+import { Key, Check, Eye, EyeOff, ExternalLink, AlertTriangle, Trash2, Sparkles, HelpCircle } from 'lucide-react';
 import { getStoredGeminiKey, setStoredGeminiKey } from '../utils/geminiKey';
 
 export function ApiKeyHeaderBar() {
@@ -132,6 +132,18 @@ export function ApiKeyHeaderBar() {
               </button>
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('open-help-center', { detail: 'api-config' }));
+            }}
+            className="inline-flex items-center gap-1 text-[11px] text-amber-300 hover:text-amber-200 transition shrink-0 ml-1 border-l border-slate-800 pl-2 cursor-pointer font-semibold"
+            title="Xem video & hướng dẫn cấu hình API Key"
+          >
+            <HelpCircle size={11} />
+            <span>Hướng dẫn API</span>
+          </button>
 
           <a
             href="https://aistudio.google.com/app/apikey"
