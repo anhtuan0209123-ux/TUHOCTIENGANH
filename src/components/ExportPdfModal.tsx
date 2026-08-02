@@ -101,18 +101,60 @@ export function ExportPdfModal({ set, isOpen, onClose }: ExportPdfModalProps) {
 
   if (!isOpen) return null;
 
+  const handleExportJson = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(set, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `${(customTitle || set.title).replace(/[^a-zA-Z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ ]/g, "").trim() || 'hoc-phan'}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  const handleExportCsv = () => {
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+    csvContent += "Thuật ngữ,Định nghĩa,Ví dụ,Dịch ví dụ\n";
+    set.cards.forEach(card => {
+      const term = `"${(card.term || '').replace(/"/g, '""')}"`;
+      const def = `"${(card.definition || '').replace(/"/g, '""')}"`;
+      const ex = `"${(card.example || '').replace(/"/g, '""')}"`;
+      const exTrans = `"${(card.exampleTranslation || '').replace(/"/g, '""')}"`;
+      csvContent += `${term},${def},${ex},${exTrans}\n`;
+    });
+    const encodedUri = encodeURI(csvContent);
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", encodedUri);
+    downloadAnchor.setAttribute("download", `${(customTitle || set.title).replace(/[^a-zA-Z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ ]/g, "").trim() || 'hoc-phan'}.csv`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
   const handleDownloadPdfDirect = async () => {
     if (!previewRef.current) return;
     setIsExporting(true);
     try {
       const element = previewRef.current;
+      let imgData = '';
       
-      // Use html-to-image to render the node cleanly without CSS parsing crashes
-      const imgData = await toPng(element, {
-        pixelRatio: 2, // High resolution crisp text rendering
-        backgroundColor: '#ffffff',
-        cacheBust: true,
-      });
+      try {
+        imgData = await toPng(element, {
+          pixelRatio: 2,
+          backgroundColor: '#ffffff',
+          cacheBust: true,
+          fontEmbedCSS: '',
+        });
+      } catch (pngErr) {
+        console.warn("toPng failed, using html2canvas fallback:", pngErr);
+        const html2canvas = (await import('html2canvas')).default;
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          logging: false,
+        });
+        imgData = canvas.toDataURL('image/png');
+      }
       
       const format = paperSize.toLowerCase() === 'a4' ? 'a4' : 'letter';
       
@@ -125,8 +167,6 @@ export function ExportPdfModal({ set, isOpen, onClose }: ExportPdfModalProps) {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       
-      // We need to calculate height of image to split it across pages if necessary
-      // Create a temporary image element to get its natural proportions
       const img = new Image();
       img.src = imgData;
       await new Promise((resolve) => {
@@ -155,12 +195,11 @@ export function ExportPdfModal({ set, isOpen, onClose }: ExportPdfModalProps) {
         }
       }
       
-      // Sanitize name for clean file download
       const safeName = customTitle.replace(/[^a-zA-Z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ ]/g, "").trim() || 'flashcards';
       pdf.save(`${safeName}.pdf`);
     } catch (error) {
       console.error("Error generating direct PDF:", error);
-      alert("Đã xảy ra lỗi trong quá trình tạo tệp PDF trực tiếp. Vui lòng thử lại hoặc sử dụng tính năng In ấn mặc định.");
+      alert("Đã xảy ra lỗi trong quá trình tạo tệp PDF trực tiếp. Vui lòng thử nút Mở Hộp thoại In hoặc Xuất file JSON/CSV.");
     } finally {
       setIsExporting(false);
     }
@@ -379,6 +418,29 @@ export function ExportPdfModal({ set, isOpen, onClose }: ExportPdfModalProps) {
                       <option value="A4">Khổ A4 (Chuẩn VN)</option>
                       <option value="Letter">Letter (Chuẩn US)</option>
                     </select>
+                  </div>
+
+                  {/* Other Data Export Formats */}
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold text-slate-600">Tải file dữ liệu:</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={handleExportJson}
+                        className="px-2.5 py-1 text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition cursor-pointer"
+                        title="Xuất học phần dưới dạng tệp JSON"
+                      >
+                        File JSON
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleExportCsv}
+                        className="px-2.5 py-1 text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-md transition cursor-pointer"
+                        title="Xuất học phần dạng bảng Excel/CSV"
+                      >
+                        File CSV
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
