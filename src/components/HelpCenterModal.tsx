@@ -48,9 +48,13 @@ export const HelpCenterModal: React.FC<HelpCenterModalProps> = ({
     });
   }, [searchQuery]);
 
+  const currentVideoUrl = activeSection.videoUrl || userGuideData.videoUrl;
+  const currentVideoTitle = activeSection.videoTitle || userGuideData.videoTitle;
+  const currentVideoDescription = activeSection.videoDescription || userGuideData.videoDescription;
+
   const embedVideoUrl = useMemo(() => {
-    return getYouTubeEmbedUrl(userGuideData.videoUrl);
-  }, []);
+    return getYouTubeEmbedUrl(currentVideoUrl);
+  }, [currentVideoUrl]);
 
   // Icon mapping helper
   const renderSectionIcon = (iconName: string, size: number = 18) => {
@@ -212,11 +216,11 @@ export const HelpCenterModal: React.FC<HelpCenterModalProps> = ({
                     <Video size={16} />
                   </div>
                   <h3 className="font-bold text-sm sm:text-base tracking-tight text-white">
-                    {userGuideData.videoTitle}
+                    {currentVideoTitle}
                   </h3>
                 </div>
                 <a 
-                  href={userGuideData.videoUrl} 
+                  href={currentVideoUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-xs font-semibold text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-lg transition flex items-center gap-1 shrink-0"
@@ -230,7 +234,7 @@ export const HelpCenterModal: React.FC<HelpCenterModalProps> = ({
               <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-inner border border-white/10">
                 <iframe
                   src={embedVideoUrl}
-                  title={userGuideData.videoTitle}
+                  title={currentVideoTitle}
                   className="absolute top-0 left-0 w-full h-full border-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
@@ -238,7 +242,7 @@ export const HelpCenterModal: React.FC<HelpCenterModalProps> = ({
               </div>
 
               <p className="text-xs text-slate-300 mt-3 leading-relaxed">
-                {userGuideData.videoDescription}
+                {currentVideoDescription}
               </p>
             </div>
 
