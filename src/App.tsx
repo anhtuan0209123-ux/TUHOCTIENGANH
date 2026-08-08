@@ -449,7 +449,7 @@ export default function App() {
                       <Star size={14} fill={currentSet.favorite ? 'currentColor' : 'none'} className={currentSet.favorite ? 'text-amber-500' : ''} />
                       <span>{currentSet.favorite ? 'Bỏ thích' : 'Yêu thích'}</span>
                     </button>
-                     <button
+                    <button
                       id="set-detail-export-pdf-btn"
                       onClick={() => setShowExportModal(true)}
                       className="p-2 px-3 border border-slate-200 bg-white hover:bg-slate-50 text-slate-705 hover:text-brand rounded-lg transition-all flex items-center justify-center gap-1.5 text-xs font-bold cursor-pointer"

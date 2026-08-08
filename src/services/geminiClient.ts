@@ -1,67 +1,89 @@
 import { GoogleGenAI } from '@google/genai';
 import { getStoredGeminiKey } from '../utils/geminiKey';
 
-// Helper for offline fallback sentence generation
+// Helper for offline fallback sentence generation with natural, word-specific sentences
 export function getMultipleDiverseServerSentences(term: string, definition: string = ''): Array<{ sentence: string; translation: string }> {
   const cleanTerm = (term || 'word').trim();
   const cleanDef = (definition || '').trim();
   const suffixDef = cleanDef ? ` (${cleanDef})` : '';
 
-  let hash = 0;
-  for (let i = 0; i < cleanTerm.length; i++) {
-    hash = (hash << 5) - hash + cleanTerm.charCodeAt(i);
-    hash |= 0;
-  }
-  const baseIndex = Math.abs(hash);
+  // Specialized dictionary for common words, IELTS, and tech terms to guarantee accurate, direct examples
+  const termKey = cleanTerm.toLowerCase();
+  const termDictionary: Record<string, Array<{ sentence: string; translation: string }>> = {
+    hello: [
+      { sentence: "Hello, my name is Ba.", translation: "Xin chào, tôi tên là Ba." },
+      { sentence: "She smiled and said hello when I walked into the office.", translation: "Cô ấy mỉm cười và nói xin chào khi tôi bước vào văn phòng." },
+      { sentence: "Hello! It is a great pleasure to meet you today.", translation: "Xin chào! Rất vui được gặp bạn hôm nay." }
+    ],
+    hi: [
+      { sentence: "Hi, how are you doing today?", translation: "Chào bạn, hôm nay bạn thế nào?" },
+      { sentence: "He waved his hand and said hi to everyone.", translation: "Anh ấy vẫy tay và chào tất cả mọi người." }
+    ],
+    apple: [
+      { sentence: "He eats a fresh red apple every morning.", translation: "Anh ấy ăn một quả táo đỏ tươi mỗi sáng." },
+      { sentence: "She bought a basket of sweet apples from the market.", translation: "Cô ấy đã mua một giỏ táo ngọt từ chợ." }
+    ],
+    fluency: [
+      { sentence: "Consistent daily conversation practice is key to developing natural fluency.", translation: "Luyện tập giao tiếp hàng ngày là chìa khóa để phát triển sự trôi chảy tự nhiên." },
+      { sentence: "She spoke English with remarkable fluency during the international interview.", translation: "Cô ấy nói tiếng Anh với sự trôi chảy đáng kinh ngạc trong buổi phỏng vấn quốc tế." },
+      { sentence: "Focusing on sentence flow helps improve overall speaking fluency.", translation: "Tập trung vào nhịp điệu câu giúp cải thiện sự trôi chảy khi nói." }
+    ],
+    coherence: [
+      { sentence: "A clear structure ensures logical coherence throughout your essay.", translation: "Cấu trúc rõ ràng đảm bảo tính mạch lạc logic xuyên suốt bài luận." },
+      { sentence: "The candidate presented her points with great clarity and coherence.", translation: "Ứng viên đã trình bày các ý kiến với sự rõ ràng và mạch lạc cao." },
+      { sentence: "Adding transitional words enhances paragraph coherence significantly.", translation: "Thêm các từ chuyển tiếp làm tăng đáng kể tính liên kết của đoạn văn." }
+    ],
+    mitigate: [
+      { sentence: "Effective risk management strategies help mitigate potential financial losses.", translation: "Các chiến lược quản lý rủi ro giúp giảm thiểu tổn thất tài chính tiềm ẩn." },
+      { sentence: "Planting native trees helps mitigate the severe impact of soil erosion.", translation: "Trồng cây bản địa giúp giảm thiểu tác động nghiêm trọng của xói mòn đất." },
+      { sentence: "Prompt action was taken to mitigate further damage to the supply chain.", translation: "Hành động kịp thời đã được thực hiện để giảm thiểu thiệt hại thêm cho chuỗi cung ứng." }
+    ],
+    feasible: [
+      { sentence: "Engineers confirmed that the solar energy proposal is technically feasible.", translation: "Các kỹ sư xác nhận rằng đề xuất năng lượng mặt trời là khả thi về kỹ thuật." },
+      { sentence: "They need to formulate a feasible action plan within the given budget.", translation: "Họ cần xây dựng một kế hoạch hành động khả thi trong ngân sách cho phép." },
+      { sentence: "Testing showed that the new production method is highly feasible.", translation: "Thử nghiệm cho thấy phương pháp sản xuất mới rất khả thi." }
+    ],
+    deforestation: [
+      { sentence: "Uncontrolled deforestation threatens biodiversity in tropical rainforests.", translation: "Tàn phá rừng không kiểm soát đe dọa đa dạng sinh học ở rừng mưa nhiệt đới." },
+      { sentence: "Governments are enacting stricter laws to halt illegal deforestation.", translation: "Chính phủ đang ban hành luật nghiêm ngặt hơn để ngăn chặn nạn phá rừng trái phép." },
+      { sentence: "Community forestry programs help combat the effects of deforestation.", translation: "Các chương trình lâm nghiệp cộng đồng giúp chống lại tác động của việc phá rừng." }
+    ],
+    algorithm: [
+      { sentence: "The new search algorithm processes millions of queries in milliseconds.", translation: "Thuật toán tìm kiếm mới xử lý hàng triệu truy vấn chỉ trong vài miligiây." },
+      { sentence: "Developers designed an efficient algorithm to optimize server loads.", translation: "Các nhà phát triển đã thiết kế thuật toán hiệu quả để tối ưu hóa tải máy chủ." },
+      { sentence: "Machine learning algorithms learn patterns directly from input data.", translation: "Các thuật toán máy học tự học các mô hình trực tiếp từ dữ liệu đầu vào." }
+    ],
+    component: [
+      { sentence: "Each UI component can be tested independently before system integration.", translation: "Mỗi thành phần giao diện có thể được kiểm thử độc lập trước khi tích hợp." },
+      { sentence: "Building modular components speeds up software development.", translation: "Xây dựng các thành phần mô-đun giúp đẩy nhanh quá trình phát triển phần mềm." },
+      { sentence: "The battery is a critical component of any electric vehicle.", translation: "Pin là một thành phần ứng dụng quan trọng của xe điện." }
+    ],
+    state: [
+      { sentence: "Updating local component state triggers React to re-render the view.", translation: "Cập nhật trạng thái cục bộ sẽ kích hoạt React vẽ lại giao diện." },
+      { sentence: "Clean state management prevents unexpected bugs in complex applications.", translation: "Quản lý trạng thái gọn gàng giúp ngăn ngừa lỗi bất ngờ trong ứng dụng phức tạp." },
+      { sentence: "The system logs changes in system state for security auditing.", translation: "Hệ thống ghi lại các thay đổi về trạng thái hệ thống để kiểm toán bảo mật." }
+    ]
+  };
 
-  const pool = [
+  if (termDictionary[termKey]) {
+    return termDictionary[termKey];
+  }
+
+  // Dynamic direct natural usage sentences without generic meta templates
+  return [
     {
-      sentence: `Many people find that ${cleanTerm} plays an important role in daily life.`,
-      translation: `Nhiều người nhận thấy ${cleanTerm}${suffixDef} đóng một vai trò quan trọng trong cuộc sống hàng ngày.`
+      sentence: `I wrote a short example using "${cleanTerm}" in my notebook.`,
+      translation: `Tôi đã viết một ví dụ ngắn sử dụng từ "${cleanTerm}"${suffixDef} vào sổ tay.`
     },
     {
-      sentence: `He spent years mastering ${cleanTerm} before applying it to his main project.`,
-      translation: `Anh ấy đã dành nhiều năm rèn luyện ${cleanTerm}${suffixDef} trước khi áp dụng vào dự án chính của mình.`
+      sentence: `He used "${cleanTerm}" naturally during his conversation with the teacher.`,
+      translation: `Anh ấy đã dùng từ "${cleanTerm}"${suffixDef} một cách tự nhiên trong cuộc trò chuyện với thầy giáo.`
     },
     {
-      sentence: `Have you ever considered how ${cleanTerm} impacts our modern society?`,
-      translation: `Bạn đã bao giờ cân nhắc xem ${cleanTerm}${suffixDef} ảnh hưởng như thế nào đến xã hội hiện đại chưa?`
-    },
-    {
-      sentence: `The professor gave a clear explanation of ${cleanTerm} during class.`,
-      translation: `Giáo sư đã giải thích rõ ràng về ${cleanTerm}${suffixDef} trong buổi học.`
-    },
-    {
-      sentence: `She quickly noticed that ${cleanTerm} was the key element in this section.`,
-      translation: `Cô ấy nhanh chóng nhận ra rằng ${cleanTerm}${suffixDef} là yếu tố then chốt trong phần này.`
-    },
-    {
-      sentence: `They discussed how to apply ${cleanTerm} in real-life practice.`,
-      translation: `Họ đã thảo luận về cách ứng dụng ${cleanTerm}${suffixDef} vào thực tế.`
-    },
-    {
-      sentence: `Having a solid grasp of ${cleanTerm} makes solving problems much easier.`,
-      translation: `Nắm vững ${cleanTerm}${suffixDef} giúp việc giải quyết vấn đề dễ dàng hơn nhiều.`
-    },
-    {
-      sentence: `This textbook provides concise examples regarding ${cleanTerm}.`,
-      translation: `Cuốn sách này đưa ra các ví dụ ngắn gọn liên quan đến ${cleanTerm}${suffixDef}.`
-    },
-    {
-      sentence: `Can you explain how ${cleanTerm} functions in this context?`,
-      translation: `Bạn có thể giải thích ${cleanTerm}${suffixDef} hoạt động như thế nào trong ngữ cảnh này không?`
-    },
-    {
-      sentence: `Recent studies highlight the practical value of ${cleanTerm}.`,
-      translation: `Các nghiên cứu gần đây nhấn mạnh giá trị thực tiễn của ${cleanTerm}${suffixDef}.`
+      sentence: `Can you help me practice pronouncing "${cleanTerm}" correctly?`,
+      translation: `Bạn có thể giúp tôi luyện phát âm từ "${cleanTerm}"${suffixDef} chính xác không?`
     }
   ];
-
-  const idx1 = baseIndex % pool.length;
-  const idx2 = (baseIndex + 5) % pool.length;
-  const idx3 = (baseIndex + 11) % pool.length;
-
-  return [pool[idx1], pool[idx2], pool[idx3]];
 }
 
 export function getDiverseServerExample(term: string, definition: string = ''): { example: string; exampleTranslation: string } {
@@ -332,14 +354,18 @@ export async function generateSetClient(topic: string, amount: number = 8, langu
 
   const prompt = `Tạo một học phần (study set) về chủ đề: "${topic}".
 Số lượng thẻ: ${amount}.
-QUY TẮC CẮT THẺ & DỊCH NGHĨA CHUẨN ĐẮC THÙ THUẬT NGỮ:
-1. Đối với môn Tiếng Anh: Mặt trước (term) là Từ/Cụm từ tiếng Anh, mặt sau (definition) là Nghĩa tiếng Việt ngắn gọn, dễ nhớ.
-2. Đối với các môn học khác (Lịch sử, Địa lý, Lập trình, Luật, Toán, Hóa...):
-   - KHÔNG TỰ Ý THÊM các đuôi "- Khái niệm", "- Quy tắc", "- Ứng dụng" vào sau Thuật ngữ!
-   - Giữ nguyên Thuật ngữ/Khái niệm/Câu hỏi chuẩn (Ví dụ: Mặt trước: "Nhà Trần thành lập năm nào?", Mặt sau: "Năm 1226").
-   - Bắt buộc phân tích nguyên CỤM THUẬT NGỮ GHÉP (Ví dụ: 'Deep Learning' -> 'Học sâu', 'Phản ứng xà phòng hóa' -> 'Phản ứng xà phòng hóa'), TUYỆT ĐỐI KHÔNG xé lẻ từ.
-3. YÊU CẦU CẦN THIẾT VỀ ĐỊNH NGHĨA: Định nghĩa (definition) phải cực kỳ đơn giản, ngắn gọn, trực diện, dễ hiểu, tránh rườm rà dài dòng.
-4. CÂU VÍ DỤ: Đặt câu ví dụ thực tế sử dụng thuật ngữ kèm bản dịch tiếng Việt hoàn chỉnh.`;
+
+YÊU CẦU NGHIÊM NGẶT VỀ ĐỘ CHÍNH XÁC VÀ MÔN HỌC CHUYÊN NGÀNH:
+1. ĐỊNH NGHĨA TIẾNG VIỆT (definition):
+   - Phải cực kỳ BẮT MẮT, NGẮN GỌN (từ 1-5 từ hoặc 1 cụm từ cô đọng), CHÍNH XÁC THEO ĐÚNG CHUYÊN NGÀNH (IELTS, Lập trình CNTT, Hóa học, Lịch sử, Y khoa, Kinh tế...).
+   - Tuyệt đối TRÁNH các câu giải thích dài dòng, rườm rà hay diễn giải lan man.
+2. CÂU VÍ DỤ TIẾNG ANH (example):
+   - Phải là câu tiếng Anh tự nhiên, sinh động, CÓ NỘI DUNG CỤ THỂ DÀNH RIÊNG CHO CHÍNH TỪ VỰNG ĐÓ trong ngữ cảnh thực tế.
+   - TUYỆT ĐỐI CẤM sử dụng các mẫu câu khung gá lắp từ rập khuôn như: "She explained how [word] functions...", "Many people find that [word] plays an important role...", "Applying [word] correctly...", "This is an example for...".
+   - Kèm theo bản dịch tiếng Việt mượt mà, đầy đủ (exampleTranslation).
+3. PHÂN TÁCH CỤM THUẬT NGỮ GHÉP:
+   - Giữ nguyên toàn bộ cụm thuật ngữ ghép chuyên ngành (VD: "Deep Learning" -> "Học sâu", "Phản ứng xà phòng hóa" -> "Phản ứng xà phòng hóa"). TUYỆT ĐỐI KHÔNG xé lẻ từ làm sai lệch nghĩa.
+4. Trường hợp học phần bằng ${language} không phải ngoại ngữ, giữ câu ví dụ trực diện gắn với kiến thức thực tế.`;
 
   const responseSchema = {
     type: "OBJECT",
@@ -367,20 +393,20 @@ QUY TẮC CẮT THẺ & DỊCH NGHĨA CHUẨN ĐẮC THÙ THUẬT NGỮ:
     let response;
     try {
       response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-3.6-flash",
         contents: prompt,
         config: {
-          systemInstruction: "Bạn là một giáo sư sư phạm và chuyên gia xây dựng tài liệu học tập. Cung cấp nội dung cô đọng, dễ hiểu.",
+          systemInstruction: "Bạn là một giáo sư ngôn ngữ học và chuyên gia sư phạm hàng đầu. Cung cấp định nghĩa ngắn gọn chuẩn xác đúng chuyên ngành và câu ví dụ ngữ cảnh thực tế sắc bén.",
           responseMimeType: "application/json",
           responseSchema: responseSchema as any
         }
       });
     } catch {
       response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-3.6-flash",
         contents: prompt,
         config: {
-          systemInstruction: "Bạn là một giáo sư sư phạm và chuyên gia xây dựng tài liệu học tập.",
+          systemInstruction: "Bạn là một giáo sư ngôn ngữ học và chuyên gia sư phạm hàng đầu.",
           responseMimeType: "application/json",
           responseSchema: responseSchema as any
         }
@@ -407,8 +433,11 @@ export async function generateMoreCardsClient(topic: string, existingTerms: stri
 
   const prompt = `Tạo thêm các thẻ học mới liên quan mật thiết đến chủ đề: "${topic}".
 Số lượng thẻ cần tạo thêm: ${amount}.
-Các từ mới tạo KHÔNG ĐƯỢC trùng lặp với bất kỳ từ nào trong danh sách hiện có này: [${existingTerms.join(", ")}].
-Định nghĩa tiếng Việt (definition) bắt buộc phải cực kỳ đơn giản, ngắn gọn, trực diện. Đặt 1 câu ví dụ tiếng Anh thực tế trong đời sống hàng ngày kèm dịch nghĩa tiếng Việt.`;
+YÊU CẦU QUAN TRỌNG:
+1. Các từ mới tạo KHÔNG ĐƯỢC trùng lặp với danh sách hiện có: [${existingTerms.join(", ")}].
+2. ĐỊNH NGHĨA TIẾNG VIỆT (definition): Phải cực kỳ ngắn gọn, sắc bén, chuẩn xác theo đúng chuyên ngành.
+3. CÂU VÍ DỤ TIẾNG ANH (example): Đặt 1 câu tiếng Anh tự nhiên mang nội dung thực tế cụ thể cho riêng từ vựng đó. TUYỆT ĐỐI CẤM sử dụng các câu mẫu gá lắp rập khuôn kiểu "She explained how [word] functions...".
+4. Dịch câu ví dụ sang tiếng Việt (exampleTranslation) chính xác và hoàn chỉnh.`;
 
   const responseSchema = {
     type: "OBJECT",
@@ -432,7 +461,7 @@ Các từ mới tạo KHÔNG ĐƯỢC trùng lặp với bất kỳ từ nào tr
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.6-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -453,31 +482,29 @@ Các từ mới tạo KHÔNG ĐƯỢC trùng lặp với bất kỳ từ nào tr
 
 // 3. Deep Dive
 export async function deepDiveClient(term: string, definition?: string, example?: string) {
+  const fallbackSentences = getMultipleDiverseServerSentences(term, definition);
+  const fallbackObj = {
+    essence: `💡 Mẹo nhớ từ "${term}": ${definition ? `Nắm vững nghĩa chuyên ngành "${definition}".` : 'Liên tưởng khái niệm này tới ứng dụng thực tế.'} Bản chất giúp giải quyết vấn đề trực diện.`,
+    examples: [
+      `1. ${example || fallbackSentences[0]?.sentence} (${fallbackSentences[0]?.translation})`,
+      `2. ${fallbackSentences[1]?.sentence} (${fallbackSentences[1]?.translation})`
+    ],
+    mistakes: `⚠️ Tránh nhầm lẫn chính tả hoặc hiểu sai ngữ cảnh chuyên ngành của từ "${term}". Hãy ôn tập thường xuyên để củng cố phản xạ tự nhiên.`
+  };
+
   const ai = getClientGemini();
   if (!ai) {
-    return {
-      essence: `💡 Mẹo nhớ từ "${term}": Liên tưởng khái niệm này tới những hình ảnh thực tế. Bản chất của khái niệm này giúp xử lý công việc trực diện hơn.`,
-      examples: [
-        `Ví dụ 1: She explained how "${term}" functions in this specific scenario. (Cô ấy đã giải thích cách "${term}" hoạt động trong kịch bản cụ thể này).`,
-        `Ví dụ 2: Applying "${term}" correctly improves accuracy significantly. (Áp dụng chính xác "${term}" giúp nâng cao đáng kể độ chính xác).`
-      ],
-      mistakes: `⚠️ Tránh nhầm lẫn cách viết chính tả hoặc hiểu sai trường nghĩa cơ bản của từ "${term}". Hãy thường xuyên ôn tập và tự gõ lại để củng cố phản xạ tự nhiên.`
-    };
+    return fallbackObj;
   }
 
   const prompt = `Giải thích chuyên sâu thuật ngữ/từ vựng: "${term}"
 Định nghĩa gốc: "${definition || ""}"
 Ví dụ mẫu: "${example || ""}"
 
-Trả về JSON chính xác:
-{
-  "essence": "Bản chất thuật ngữ & Mẹo ghi nhớ độc đáo, liên tưởng hóm hỉnh trực quan (khoảng 1-2 câu).",
-  "examples": [
-    "Ví dụ mẫu thực tế 1 kèm dịch nghĩa Việt.",
-    "Ví dụ mẫu thực tế 2 kèm dịch nghĩa Việt."
-  ],
-  "mistakes": "Các lỗi sai thường gặp khi dùng từ này kèm cách khắc phục ngắn gọn nhất."
-}`;
+YÊU CẦU NGHIÊM NGẶT:
+1. essence: Bản chất thuật ngữ & Mẹo ghi nhớ độc đáo, liên tưởng trực quan (1-2 câu ngắn gọn).
+2. examples: Đúng 2 ví dụ thực tế mang nội dung cụ thể dành riêng cho từ "${term}" kèm bản dịch tiếng Việt. TUYỆT ĐỐI CẤM dùng các mẫu câu rập khuôn gá lắp kiểu "She explained how [word] functions...".
+3. mistakes: Các lỗi sai thường gặp khi dùng từ/thuật ngữ này kèm cách khắc phục ngắn gọn nhất.`;
 
   const responseSchema = {
     type: "OBJECT",
@@ -491,7 +518,7 @@ Trả về JSON chính xác:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.6-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -504,14 +531,7 @@ Trả về JSON chính xác:
   } catch (err) {
     if (isPermissionOrKeyError(err)) throw new Error(FRIENDLY_PERMISSION_ERROR);
     console.warn("Client Gemini deepDive failed:", err);
-    return {
-      essence: `💡 Mẹo nhớ từ "${term}": Liên tưởng khái niệm này tới những hình ảnh thực tế. Bản chất của khái niệm này giúp xử lý công việc trực diện hơn.`,
-      examples: [
-        `Ví dụ 1: She explained how "${term}" functions in this specific scenario. (Cô ấy đã giải thích cách "${term}" hoạt động trong kịch bản cụ thể này).`,
-        `Ví dụ 2: Applying "${term}" correctly improves accuracy significantly. (Áp dụng chính xác "${term}" giúp nâng cao đáng kể độ chính xác).`
-      ],
-      mistakes: `⚠️ Tránh nhầm lẫn cách viết chính tả hoặc hiểu sai trường nghĩa cơ bản của từ "${term}". Hãy thường xuyên ôn tập để củng cố phản xạ tự nhiên.`
-    };
+    return fallbackObj;
   }
 }
 
@@ -527,15 +547,15 @@ export async function analyzeVocabClient(text: string, language: string = "Vietn
 ${text}
 """
 QUY TẮC BẮT BUỘC BÓC TÁCH MẶT TRƯỚC VÀ MẶT SAU THẺ:
-1. TỰ ĐỘNG NHẬN DIỆN VÀ TÁCH THEO 3 ĐỊNH DẠNG CHUẨN KHI NICK NHẬP NỘI DUNG:
-   - KIỂU 1 (Dấu hai chấm ':'): "A : B" -> Mặt trước ('term') = "A", Mặt sau ('definition') = "B" (Ví dụ: "hello : chào" -> Mặt trước = "hello", Mặt sau = "chào").
-   - KIỂU 2 (Dấu gạch ngang '-' hoặc '–'): "A - B" -> Mặt trước ('term') = "A", Mặt sau ('definition') = "B" (Ví dụ: "Phản ứng xà phòng hóa - Thủy phân chất béo..." -> Mặt trước = "Phản ứng xà phòng hóa").
-   - KIỂU 3 (Dấu ngoặc đơn '()'): "A (B)" -> Mặt trước ('term') = "A", Mặt sau ('definition') = "B" (Ví dụ: "Computer Vision (Thị giác máy tính)" -> Mặt trước = "Computer Vision", Mặt sau = "Thị giác máy tính").
+1. TỰ ĐỘNG NHẬN DIỆN VÀ TÁCH THEO 3 ĐỊNH DẠNG CHUẨN KHI NHẬP NỘI DUNG:
+   - KIỂU 1 (Dấu hai chấm ':'): "A : B" -> Mặt trước ('term') = "A", Mặt sau ('definition') = "B".
+   - KIỂU 2 (Dấu gạch ngang '-' hoặc '–'): "A - B" -> Mặt trước ('term') = "A", Mặt sau ('definition') = "B".
+   - KIỂU 3 (Dấu ngoặc đơn '()'): "A (B)" -> Mặt trước ('term') = "A", Mặt sau ('definition') = "B".
 
 2. CẮT KHOẢNG TRẮNG THỪA (TRIM) CẢ 2 ĐẦU CỦA 'term' VÀ 'definition'.
-3. TUYỆT ĐỐI KHÔNG GỘP CẢ 2 TỪ DÍNH LIỀN THÀNH MẶT TRƯỚC (Ví dụ: CẤM gộp "hello chào" làm 1 mặt trước, phải tách Mặt trước = "hello", Mặt sau = "chào").
-4. MẶT TRƯỚC ('term'): Là cụm từ / thuật ngữ chuyên ngành (1-5 từ). Giữ nguyên toàn bộ cụm từ ghép ("Deep Learning", "Phản ứng xà phòng hóa", "Chiến thắng Bạch Đằng 938"). CẤM ký tự đơn lẻ rác như 'n', 'a', 'x'.
-5. MẶT SAU ('definition'): Định nghĩa/nghĩa ngắn gọn bằng ${language} (1-3 câu).`;
+3. MẶT TRƯỚC ('term'): Là cụm từ / thuật ngữ chuyên ngành (1-5 từ). Giữ nguyên toàn bộ cụm từ ghép ("Deep Learning", "Phản ứng xà phòng hóa", "Chiến thắng Bạch Đằng 938"). CẤM ký tự đơn lẻ rác.
+4. MẶT SAU ('definition'): Định nghĩa tiếng Việt cực kỳ ngắn gọn, chính xác theo đúng chuyên ngành bằng ${language}.
+5. CÂU VÍ DỤ ('example'): Câu tiếng Anh ngữ cảnh thực tế mang nội dung cụ thể cho riêng từ đó, TUYỆT ĐỐI CẤM câu gá lắp rập khuôn kiểu "She explained how [word] functions...".`;
 
   const responseSchema = {
     type: "OBJECT",
@@ -561,7 +581,7 @@ QUY TẮC BẮT BUỘC BÓC TÁCH MẶT TRƯỚC VÀ MẶT SAU THẺ:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.6-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -595,8 +615,9 @@ export async function generateDynamicSentencesClient(term: string, definition?: 
     return { sentences: getMultipleDiverseServerSentences(term, definition) };
   }
 
-  const prompt = `Đặt chính xác 3 câu ví dụ giao tiếp hàng ngày cho từ "${term}" (Định nghĩa: "${definition || ''}").
-Mỗi câu ví dụ tiếng Anh phải đi kèm với bản dịch tiếng Việt mượt mà.
+  const prompt = `Đặt chính xác 3 câu ví dụ giao tiếp/công việc chuyên ngành thực tế cho từ vựng "${term}" (Định nghĩa: "${definition || ''}").
+Mỗi câu ví dụ tiếng Anh phải có nội dung cụ thể phù hợp với nghĩa thực tế của từ, TUYỆT ĐỐI CẤM các mẫu câu rập khuôn gá lắp kiểu "She explained how [word] functions...".
+Kèm theo bản dịch tiếng Việt mượt mà và chính xác.
 Trả về JSON: { "sentences": [ { "sentence": "...", "translation": "..." } ] }`;
 
   const responseSchema = {
@@ -619,7 +640,7 @@ Trả về JSON: { "sentences": [ { "sentence": "...", "translation": "..." } ] 
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.6-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -692,7 +713,7 @@ export async function checkVocabQualityClient(term: string, definition?: string)
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.6-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -789,7 +810,7 @@ ${JSON.stringify(cards.map((c) => ({ id: c.id, term: c.term, definition: c.defin
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.6-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -855,7 +876,7 @@ Yêu cầu câu hỏi:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.6-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -902,7 +923,7 @@ export async function campaignChatClient(promptText: string) {
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.6-flash",
       contents: promptText,
       config: {
         systemInstruction,
@@ -998,7 +1019,7 @@ BẮT BUỘC TRẢ VỀ kết quả dưới dạng JSON có cấu trúc sau:
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.6-flash",
       contents: prompt,
       config: {
         systemInstruction,

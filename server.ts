@@ -83,87 +83,87 @@ async function generateContentWithRetry(ai: GoogleGenAI, params: any, retries = 
   }
 }
 
-// Helper to generate varied, realistic natural sentences for offline fallback
+// Helper to generate varied, realistic natural sentences for offline fallback without generic templates
 function getMultipleDiverseServerSentences(term: string, definition: string = ''): Array<{ sentence: string; translation: string }> {
   const cleanTerm = (term || 'word').trim();
   const cleanDef = (definition || '').trim();
   const suffixDef = cleanDef ? ` (${cleanDef})` : '';
 
-  let hash = 0;
-  for (let i = 0; i < cleanTerm.length; i++) {
-    hash = (hash << 5) - hash + cleanTerm.charCodeAt(i);
-    hash |= 0;
-  }
-  const baseIndex = Math.abs(hash);
+  const termKey = cleanTerm.toLowerCase();
+  const termDictionary: Record<string, Array<{ sentence: string; translation: string }>> = {
+    hello: [
+      { sentence: "Hello, my name is Ba.", translation: "Xin chào, tôi tên là Ba." },
+      { sentence: "She smiled and said hello when I walked into the office.", translation: "Cô ấy mỉm cười và nói xin chào khi tôi bước vào văn phòng." },
+      { sentence: "Hello! It is a great pleasure to meet you today.", translation: "Xin chào! Rất vui được gặp bạn hôm nay." }
+    ],
+    hi: [
+      { sentence: "Hi, how are you doing today?", translation: "Chào bạn, hôm nay bạn thế nào?" },
+      { sentence: "He waved his hand and said hi to everyone.", translation: "Anh ấy vẫy tay và chào tất cả mọi người." }
+    ],
+    apple: [
+      { sentence: "He eats a fresh red apple every morning.", translation: "Anh ấy ăn một quả táo đỏ tươi mỗi sáng." },
+      { sentence: "She bought a basket of sweet apples from the market.", translation: "Cô ấy đã mua một giỏ táo ngọt từ chợ." }
+    ],
+    fluency: [
+      { sentence: "Consistent daily conversation practice is key to developing natural fluency.", translation: "Luyện tập giao tiếp hàng ngày là chìa khóa để phát triển sự trôi chảy tự nhiên." },
+      { sentence: "She spoke English with remarkable fluency during the international interview.", translation: "Cô ấy nói tiếng Anh với sự trôi chảy đáng kinh ngạc trong buổi phỏng vấn quốc tế." },
+      { sentence: "Focusing on sentence flow helps improve overall speaking fluency.", translation: "Tập trung vào nhịp điệu câu giúp cải thiện sự trôi chảy khi nói." }
+    ],
+    coherence: [
+      { sentence: "A clear structure ensures logical coherence throughout your essay.", translation: "Cấu trúc rõ ràng đảm bảo tính mạch lạc logic xuyên suốt bài luận." },
+      { sentence: "The candidate presented her points with great clarity and coherence.", translation: "Ứng viên đã trình bày các ý kiến với sự rõ ràng và mạch lạc cao." },
+      { sentence: "Adding transitional words enhances paragraph coherence significantly.", translation: "Thêm các từ chuyển tiếp làm tăng đáng kể tính liên kết của đoạn văn." }
+    ],
+    mitigate: [
+      { sentence: "Effective risk management strategies help mitigate potential financial losses.", translation: "Các chiến lược quản lý rủi ro giúp giảm thiểu tổn thất tài chính tiềm ẩn." },
+      { sentence: "Planting native trees helps mitigate the severe impact of soil erosion.", translation: "Trồng cây bản địa giúp giảm thiểu tác động nghiêm trọng của xói mòn đất." },
+      { sentence: "Prompt action was taken to mitigate further damage to the supply chain.", translation: "Hành động kịp thời đã được thực hiện để giảm thiểu thiệt hại thêm cho chuỗi cung ứng." }
+    ],
+    feasible: [
+      { sentence: "Engineers confirmed that the solar energy proposal is technically feasible.", translation: "Các kỹ sư xác nhận rằng đề xuất năng lượng mặt trời là khả thi về kỹ thuật." },
+      { sentence: "They need to formulate a feasible action plan within the given budget.", translation: "Họ cần xây dựng một kế hoạch hành động khả thi trong ngân sách cho phép." },
+      { sentence: "Testing showed that the new production method is highly feasible.", translation: "Thử nghiệm cho thấy phương pháp sản xuất mới rất khả thi." }
+    ],
+    deforestation: [
+      { sentence: "Uncontrolled deforestation threatens biodiversity in tropical rainforests.", translation: "Tàn phá rừng không kiểm soát đe dọa đa dạng sinh học ở rừng mưa nhiệt đới." },
+      { sentence: "Governments are enacting stricter laws to halt illegal deforestation.", translation: "Chính phủ đang ban hành luật nghiêm ngặt hơn để ngăn chặn nạn phá rừng trái phép." },
+      { sentence: "Community forestry programs help combat the effects of deforestation.", translation: "Các chương trình lâm nghiệp cộng đồng giúp chống lại tác động của việc phá rừng." }
+    ],
+    algorithm: [
+      { sentence: "The new search algorithm processes millions of queries in milliseconds.", translation: "Thuật toán tìm kiếm mới xử lý hàng triệu truy vấn chỉ trong vài miligiây." },
+      { sentence: "Developers designed an efficient algorithm to optimize server loads.", translation: "Các nhà phát triển đã thiết kế thuật toán hiệu quả để tối ưu hóa tải máy chủ." },
+      { sentence: "Machine learning algorithms learn patterns directly from input data.", translation: "Các thuật toán máy học tự học các mô hình trực tiếp từ dữ liệu đầu vào." }
+    ],
+    component: [
+      { sentence: "Each UI component can be tested independently before system integration.", translation: "Mỗi thành phần giao diện có thể được kiểm thử độc lập trước khi tích hợp." },
+      { sentence: "Building modular components speeds up software development.", translation: "Xây dựng các thành phần mô-đun giúp đẩy nhanh quá trình phát triển phần mềm." },
+      { sentence: "The battery is a critical component of any electric vehicle.", translation: "Pin là một thành phần ứng dụng quan trọng của xe điện." }
+    ],
+    state: [
+      { sentence: "Updating local component state triggers React to re-render the view.", translation: "Cập nhật trạng thái cục bộ sẽ kích hoạt React vẽ lại giao diện." },
+      { sentence: "Clean state management prevents unexpected bugs in complex applications.", translation: "Quản lý trạng thái gọn gàng giúp ngăn ngừa lỗi bất ngờ trong ứng dụng phức tạp." },
+      { sentence: "The system logs changes in system state for security auditing.", translation: "Hệ thống ghi lại các thay đổi về trạng thái hệ thống để kiểm toán bảo mật." }
+    ]
+  };
 
-  const pool = [
+  if (termDictionary[termKey]) {
+    return termDictionary[termKey];
+  }
+
+  return [
     {
-      sentence: `Many people find that ${cleanTerm} plays an important role in daily life.`,
-      translation: `Nhiều người nhận thấy ${cleanTerm}${suffixDef} đóng một vai trò quan trọng trong cuộc sống hàng ngày.`
+      sentence: `I wrote a short example using "${cleanTerm}" in my notebook.`,
+      translation: `Tôi đã viết một ví dụ ngắn sử dụng từ "${cleanTerm}"${suffixDef} vào sổ tay.`
     },
     {
-      sentence: `He spent years mastering ${cleanTerm} before applying it to his main project.`,
-      translation: `Anh ấy đã dành nhiều năm rèn luyện ${cleanTerm}${suffixDef} trước khi áp dụng vào dự án chính của mình.`
+      sentence: `He used "${cleanTerm}" naturally during his conversation with the teacher.`,
+      translation: `Anh ấy đã dùng từ "${cleanTerm}"${suffixDef} một cách tự nhiên trong cuộc trò chuyện với thầy giáo.`
     },
     {
-      sentence: `Have you ever considered how ${cleanTerm} impacts our modern society?`,
-      translation: `Bạn đã bao giờ cân nhắc xem ${cleanTerm}${suffixDef} ảnh hưởng như thế nào đến xã hội hiện đại chưa?`
-    },
-    {
-      sentence: `The expert gave a clear demonstration of ${cleanTerm} during the conference.`,
-      translation: `Chuyên gia đã minh họa rõ ràng về ${cleanTerm}${suffixDef} trong buổi hội thảo.`
-    },
-    {
-      sentence: `She quickly noticed that ${cleanTerm} was the key factor in solving the issue.`,
-      translation: `Cô ấy nhanh chóng nhận ra rằng ${cleanTerm}${suffixDef} là yếu tố then chốt để giải quyết vấn đề.`
-    },
-    {
-      sentence: `They are working together to improve their understanding of ${cleanTerm}.`,
-      translation: `Họ đang cùng nhau làm việc để nâng cao sự hiểu biết về ${cleanTerm}${suffixDef}.`
-    },
-    {
-      sentence: `Without a clear grasp of ${cleanTerm}, it is difficult to achieve good results.`,
-      translation: `Nếu không nắm vững ${cleanTerm}${suffixDef}, rất khó để đạt được kết quả tốt.`
-    },
-    {
-      sentence: `This new textbook provides many practical scenarios involving ${cleanTerm}.`,
-      translation: `Cuốn giáo trình mới này đưa ra nhiều kịch bản thực tế liên quan đến ${cleanTerm}${suffixDef}.`
-    },
-    {
-      sentence: `Can you explain the main difference between ${cleanTerm} and other related terms?`,
-      translation: `Bạn có thể giải thích sự khác biệt chính giữa ${cleanTerm}${suffixDef} và các thuật ngữ liên quan khác không?`
-    },
-    {
-      sentence: `Recent research suggests that ${cleanTerm} plays a crucial role in development.`,
-      translation: `Nghiên cứu gần đây cho thấy ${cleanTerm}${suffixDef} đóng vai trò quan trọng trong sự phát triển.`
-    },
-    {
-      sentence: `She decides to practice using ${cleanTerm} in daily conversations to build confidence.`,
-      translation: `Cô ấy quyết định thực hành sử dụng ${cleanTerm}${suffixDef} trong giao tiếp hàng ngày để tăng sự tự tin.`
-    },
-    {
-      sentence: `Our team had a productive discussion on how to optimize ${cleanTerm} effectively.`,
-      translation: `Nhóm chúng tôi đã có buổi thảo luận hiệu quả về cách tối ưu hóa ${cleanTerm}${suffixDef} một cách hữu hiệu.`
-    },
-    {
-      sentence: `Understanding ${cleanTerm} thoroughly will give you a significant advantage in this field.`,
-      translation: `Thấu hiểu ${cleanTerm}${suffixDef} một cách thấu đáo sẽ mang lại cho bạn lợi thế lớn trong lĩnh vực này.`
-    },
-    {
-      sentence: `The manager requested a detailed report regarding the implementation of ${cleanTerm}.`,
-      translation: `Người quản lý đã yêu cầu một báo cáo chi tiết liên quan đến việc triển khai ${cleanTerm}${suffixDef}.`
-    },
-    {
-      sentence: `It is widely acknowledged that ${cleanTerm} requires continuous practice and attention.`,
-      translation: `Mọi người đều công nhận rằng ${cleanTerm}${suffixDef} đòi hỏi sự rèn luyện và chú ý liên tục.`
+      sentence: `Can you help me practice pronouncing "${cleanTerm}" correctly?`,
+      translation: `Bạn có thể giúp tôi luyện phát âm từ "${cleanTerm}"${suffixDef} chính xác không?`
     }
   ];
-
-  const idx1 = baseIndex % pool.length;
-  const idx2 = (baseIndex + 5) % pool.length;
-  const idx3 = (baseIndex + 11) % pool.length;
-
-  return [pool[idx1], pool[idx2], pool[idx3]];
 }
 
 function getDiverseServerExample(term: string, definition: string = ''): { example: string; exampleTranslation: string } {
@@ -431,7 +431,7 @@ async function startServer() {
         let response;
         try {
           response = await generateContentWithRetry(ai, {
-            model: "gemini-1.5-flash",
+            model: "gemini-3.6-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là một giáo sư sư phạm và chuyên gia xây dựng tài liệu học tập của Quizlet. Bạn cung cấp nội dung học tập vô cùng cô đọng, dễ hiểu và truyền cảm hứng học hỏi.",
@@ -479,9 +479,9 @@ async function startServer() {
             }
           });
         } catch (error35: any) {
-          console.warn("[gemini-1.5-flash failed or high demand]. Trying fallback model gemini-1.5-flash...", error35);
+          console.warn("[gemini-3.6-flash failed or high demand]. Trying fallback model gemini-3.6-flash...", error35);
           response = await generateContentWithRetry(ai, {
-            model: "gemini-1.5-flash",
+            model: "gemini-3.6-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là một giáo sư sư phạm và chuyên gia xây dựng tài liệu học tập của Quizlet. Bạn cung cấp nội dung học tập vô cùng cô đọng, dễ hiểu và truyền cảm hứng học hỏi.",
@@ -575,7 +575,7 @@ async function startServer() {
         let response;
         try {
           response = await generateContentWithRetry(ai, {
-            model: "gemini-1.5-flash",
+            model: "gemini-3.6-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là giáo sư ngôn ngữ học và chuyên gia xây dựng nội dung học tập thông minh. Bạn cung cấp từ vựng học thuật mở rộng liên quan để nâng cao kiến thức liên tục cho học viên.",
@@ -603,9 +603,9 @@ async function startServer() {
             }
           });
         } catch (err: any) {
-          console.warn("[gemini-1.5-flash failed for more cards]. Trying fallback...", err);
+          console.warn("[gemini-3.6-flash failed for more cards]. Trying fallback...", err);
           response = await generateContentWithRetry(ai, {
-            model: "gemini-1.5-flash",
+            model: "gemini-3.6-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là giáo sư ngôn ngữ học và chuyên gia xây dựng nội dung học tập thông minh.",
@@ -685,16 +685,17 @@ async function startServer() {
       {
         "essence": "Bản chất thuật ngữ & Mẹo ghi nhớ độc đáo, liên tưởng hóm hỉnh trực quan (khoảng 1-2 câu).",
         "examples": [
-          "Ví dụ mẫu thực tế số 1 (bằng tiếng Anh hoặc tiếng gốc của thuật ngữ nếu là ngoại ngữ) kèm dịch nghĩa Việt.",
+          "Ví dụ mẫu thực tế số 1 trực tiếp sử dụng từ vựng đó trong giao tiếp/văn cảnh thực (Ví dụ: từ 'hello' -> 'Hello, my name is Ba. (Xin chào, tôi tên là Ba.)') kèm dịch nghĩa Việt.",
           "Ví dụ mẫu thực tế số 2 kèm dịch nghĩa Việt."
         ],
         "mistakes": "Các lỗi sai thường gặp khi dùng từ/thuật ngữ này (về ngữ pháp, phát âm hoặc hiểu sai ngữ cảnh) kèm cách khắc phục ngắn gọn nhất."
-      }`;
+      }
+      TUYỆT ĐỐI CẤM dùng các mẫu câu rập khuôn gá lắp kiểu 'She explained how [word] functions...' hoặc 'Applying [word] correctly...'.`;
 
       let response;
       try {
         response = await generateContentWithRetry(ai, {
-          model: "gemini-1.5-flash",
+          model: "gemini-3.6-flash",
           contents: prompt,
           config: {
             systemInstruction: "Bạn là một giáo sư ngôn ngữ học và trợ lý học tập thông thái của QuizSet, chuyên phân tích các từ khó, thuật ngữ lập trình hoặc thuật ngữ IELTS khó hiểu trở nên cực kỳ sinh động và dễ ghi nhớ.",
@@ -724,9 +725,9 @@ async function startServer() {
         if (err35?.message === "GEMINI_QUOTA_EXCEEDED" || isQuotaError(err35)) {
           throw new Error("GEMINI_QUOTA_EXCEEDED");
         }
-        console.log("[gemini-1.5-flash deep-dive failed]. Retrying with gemini-1.5-flash...");
+        console.log("[gemini-3.6-flash deep-dive failed]. Retrying with gemini-3.6-flash...");
         response = await generateContentWithRetry(ai, {
-          model: "gemini-1.5-flash",
+          model: "gemini-3.6-flash",
           contents: prompt,
           config: {
             systemInstruction: "Bạn là một giáo sư ngôn ngữ học và trợ lý học tập thông thái của QuizSet, chuyên phân tích các từ khó, thuật ngữ lập trình hoặc thuật ngữ IELTS khó hiểu trở nên cực kỳ sinh động và dễ ghi nhớ.",
@@ -766,11 +767,12 @@ async function startServer() {
       } else {
         console.log(`[Offline Mode] Deep Dive failed: ${error?.message || error}. Using local smart fallback.`);
       }
+      const fallbackSentences = getMultipleDiverseServerSentences(term, definition);
       res.json({
-        essence: `💡 Mẹo nhớ từ "${term}": Hãy chia nhỏ hoặc liên tưởng khái niệm này tới những hình ảnh hàng ngày. Bản chất của khái niệm này liên quan mật thiết tới tư duy giải quyết vấn đề và nền tảng ứng dụng.`,
+        essence: `💡 Mẹo nhớ từ "${term}": ${definition ? `Nắm vững nghĩa chuyên ngành "${definition}".` : 'Liên tưởng khái niệm này tới ứng dụng thực tế.'} Bản chất giúp giải quyết vấn đề trực diện.`,
         examples: [
-          `Ví dụ 1: She explained that "${term}" plays an important role in daily life. (Cô ấy giải thích rằng "${term}" đóng một vai trò quan trọng trong cuộc sống hàng ngày).`,
-          `Ví dụ 2: Understanding "${term}" clearly helps us solve problems faster. (Hiểu rõ "${term}" giúp chúng ta giải quyết các vấn đề nhanh hơn).`
+          `1. ${fallbackSentences[0]?.sentence} (${fallbackSentences[0]?.translation})`,
+          `2. ${fallbackSentences[1]?.sentence} (${fallbackSentences[1]?.translation})`
         ],
         mistakes: `⚠️ Tránh nhầm lẫn cách viết chính tả hoặc hiểu sai trường nghĩa cơ bản của từ "${term}". Hãy thường xuyên ôn tập và tự gõ lại để củng cố phản xạ tự nhiên.`
       });
@@ -815,7 +817,7 @@ async function startServer() {
         let response;
         try {
           response = await generateContentWithRetry(ai, {
-            model: "gemini-1.5-flash",
+            model: "gemini-3.6-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là một AI chuyên phân tích văn bản chuyên môn và xây dựng học tập của Quizlet. Bạn cung cấp nội dung học thuật vô cùng chất lượng, chính xác tuyệt đối, chuẩn ngữ pháp và không bao giờ tự ý cắt xén dữ liệu học từ của người dùng.",
@@ -866,9 +868,9 @@ async function startServer() {
           if (error35?.message === "GEMINI_QUOTA_EXCEEDED" || isQuotaError(error35)) {
             throw new Error("GEMINI_QUOTA_EXCEEDED");
           }
-          console.log("[gemini-1.5-flash analyze failed]. Trying fallback model gemini-1.5-flash...");
+          console.log("[gemini-3.6-flash analyze failed]. Trying fallback model gemini-3.6-flash...");
           response = await generateContentWithRetry(ai, {
-            model: "gemini-1.5-flash",
+            model: "gemini-3.6-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là một AI chuyên phân tích văn bản chuyên môn và xây dựng học học tập của Quizlet. Bạn cung cấp nội dung học thuật vô cùng chất lượng, chính xác tuyệt đối, chuẩn ngữ pháp và không bao giờ tự ý cắt xén dữ liệu học từ của người dùng.",
@@ -963,7 +965,7 @@ async function startServer() {
       let response;
       try {
         response = await generateContentWithRetry(ai, {
-          model: "gemini-1.5-flash",
+          model: "gemini-3.6-flash",
           contents: prompt,
           config: {
             systemInstruction: "Bạn là một trợ lý ngôn ngữ và giảng viên dạy từ vựng ưu tú. Bạn chuyên đặt các câu ví dụ tiếng Anh cực kỳ thực tế, sinh động, vui vẻ và gần gũi với cuộc sống hàng ngày để người học dễ liên tưởng và học thuộc từ vựng.",
@@ -991,9 +993,9 @@ async function startServer() {
         if (err?.message === "GEMINI_QUOTA_EXCEEDED" || isQuotaError(err)) {
           throw new Error("GEMINI_QUOTA_EXCEEDED");
         }
-        console.log("[gemini-1.5-flash generate-dynamic-sentences failed]. Trying gemini-1.5-flash...");
+        console.log("[gemini-3.6-flash generate-dynamic-sentences failed]. Trying gemini-3.6-flash...");
         response = await generateContentWithRetry(ai, {
-          model: "gemini-1.5-flash",
+          model: "gemini-3.6-flash",
           contents: prompt,
           config: {
             systemInstruction: "Bạn là một trợ lý ngôn ngữ và giảng viên dạy từ vựng ưu tú. Bạn chuyên đặt các câu ví dụ tiếng Anh cực kỳ thực tế, sinh động, vui vẻ và gần gũi với cuộc sống hàng ngày để người học dễ liên tưởng và học thuộc từ vựng.",
@@ -1127,11 +1129,11 @@ async function startServer() {
       };
 
       let response;
-      // STAGE 1: Try gemini-1.5-flash with Google Search Grounding and JSON Schema
+      // STAGE 1: Try gemini-3.6-flash with Google Search Grounding and JSON Schema
       try {
         console.log(`[Stage 1] Checking quality for term: "${term}" with Google Search Grounding...`);
         response = await generateContentWithRetry(ai, {
-          model: "gemini-1.5-flash",
+          model: "gemini-3.6-flash",
           contents: prompt,
           config: {
             systemInstruction: "Bạn là giáo sư ngôn ngữ học và chuyên gia biên soạn từ điển ưu tú. Nhiệm vụ của bạn là rà soát lỗi chính tả, kiểm duyệt và chuẩn hóa ngữ nghĩa từ vựng, giải thích chi tiết cặn kẽ tại sao sai hoặc cần cải tiến, thiết lập câu mẫu B1/B2 đỉnh cao, và dẫn chứng nguồn tham chiếu từ điển thế giới (Cambridge, Oxford, Larousse...) cực kỳ chính thống, uy tín. Sử dụng công cụ Google Search để tìm kiếm và rà soát đối chiếu thông tin chính xác nhất từ các nguồn từ điển trực tuyến uy tín.",
@@ -1146,10 +1148,10 @@ async function startServer() {
         }
         console.warn("[Stage 1 Failed] Search Grounding or Tool execution failed. Retrying in Stage 2 WITHOUT Google Search...");
         
-        // STAGE 2: Try gemini-1.5-flash WITHOUT Google Search to guarantee response
+        // STAGE 2: Try gemini-3.6-flash WITHOUT Google Search to guarantee response
         try {
           response = await generateContentWithRetry(ai, {
-            model: "gemini-1.5-flash",
+            model: "gemini-3.6-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là giáo sư ngôn ngữ học và chuyên gia biên soạn từ điển ưu tú. Nhiệm vụ của bạn là rà soát lỗi chính tả, kiểm duyệt và chuẩn hóa ngữ nghĩa từ vựng, giải thích chi tiết cặn kẽ tại sao sai hoặc cần cải tiến, thiết lập câu mẫu B1/B2 đỉnh cao, và dẫn chứng nguồn tham chiếu từ điển thế giới (Cambridge, Oxford, Larousse...) cực kỳ chính thống, uy tín.",
@@ -1163,9 +1165,9 @@ async function startServer() {
           }
           console.warn("[Stage 2 Failed] Gemini 3.5-flash without search failed. Retrying in Stage 3 with 3.1-flash-lite...");
 
-          // STAGE 3: Try gemini-1.5-flash WITHOUT Google Search
+          // STAGE 3: Try gemini-3.6-flash WITHOUT Google Search
           response = await generateContentWithRetry(ai, {
-            model: "gemini-1.5-flash",
+            model: "gemini-3.6-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là giáo sư ngôn ngữ học rà soát từ vựng.",
@@ -1273,11 +1275,11 @@ YÊU CẦU:
       };
 
       let response;
-      // STAGE 1: Try gemini-1.5-flash with Google Search Grounding and JSON Schema
+      // STAGE 1: Try gemini-3.6-flash with Google Search Grounding and JSON Schema
       try {
         console.log("[Stage 1] Bulk quality check with Google Search Grounding...");
         response = await generateContentWithRetry(ai, {
-          model: "gemini-1.5-flash",
+          model: "gemini-3.6-flash",
           contents: prompt,
           config: {
             systemInstruction: "Bạn là giáo sư ngôn ngữ học và chuyên gia biên soạn từ điển ưu tú. Nhiệm vụ của bạn là rà soát lỗi chính tả toàn diện, chuẩn hóa ngữ nghĩa từ vựng tiếng Việt tối giản, dễ nhớ nhất, và dẫn chứng nguồn tham chiếu từ điển thế giới (Cambridge, Oxford, Larousse...) cực kỳ chính thống, uy tín. Sử dụng công cụ Google Search để tìm kiếm và rà soát đối chiếu thông tin chính xác nhất từ các nguồn từ điển trực tuyến uy tín.",
@@ -1292,10 +1294,10 @@ YÊU CẦU:
         }
         console.warn("[Stage 1 Failed] Bulk check with Search Grounding failed. Retrying WITHOUT search...");
 
-        // STAGE 2: Try gemini-1.5-flash WITHOUT Google Search
+        // STAGE 2: Try gemini-3.6-flash WITHOUT Google Search
         try {
           response = await generateContentWithRetry(ai, {
-            model: "gemini-1.5-flash",
+            model: "gemini-3.6-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là giáo sư ngôn ngữ học và chuyên gia biên soạn từ điển ưu tú. Nhiệm vụ của bạn là rà soát lỗi chính tả toàn diện, chuẩn hóa ngữ nghĩa từ vựng tiếng Việt tối giản, dễ nhớ nhất, và dẫn chứng nguồn tham chiếu từ điển thế giới (Cambridge, Oxford, Larousse...) cực kỳ chính thống, uy tín.",
@@ -1309,9 +1311,9 @@ YÊU CẦU:
           }
           console.warn("[Stage 2 Failed] Bulk check with 3.5-flash without search failed. Retrying with 3.1-flash-lite...");
 
-          // STAGE 3: Try gemini-1.5-flash WITHOUT Google Search
+          // STAGE 3: Try gemini-3.6-flash WITHOUT Google Search
           response = await generateContentWithRetry(ai, {
-            model: "gemini-1.5-flash",
+            model: "gemini-3.6-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là giáo sư ngôn ngữ học rà soát từ vựng.",
@@ -1365,7 +1367,7 @@ YÊU CẦU:
       - Từ vựng được hỏi và các lựa chọn nên thuộc danh sách từ được gửi lên, hoặc các từ liên quan siêu thách thức cùng chủ đề để tạo kịch tính.`;
 
       const response = await generateContentWithRetry(ai, {
-        model: "gemini-1.5-flash",
+        model: "gemini-3.6-flash",
         contents: prompt,
         config: {
           systemInstruction: "Bạn là giáo sư ngôn ngữ biên soạn câu hỏi trắc nghiệm tiếng Anh học thuật IELTS/CEFR C1/C2 siêu thách thức.",
@@ -1448,9 +1450,9 @@ YÊU CẦU:
           if (error35?.message === "GEMINI_QUOTA_EXCEEDED" || isQuotaError(error35)) {
             throw new Error("GEMINI_QUOTA_EXCEEDED");
           }
-          console.log("[gemini-1.5-flash campaign-chat failed]. Trying fallback model gemini-1.5-flash...");
+          console.log("[gemini-3.6-flash campaign-chat failed]. Trying fallback model gemini-3.6-flash...");
           response = await generateContentWithRetry(ai, {
-            model: "gemini-1.5-flash",
+            model: "gemini-3.6-flash",
             contents: prompt,
             config: {
               systemInstruction,
@@ -1514,8 +1516,8 @@ YÊU CẦU:
       const ai = getGeminiClient(req);
       const isFast = mode === "fast";
 
-      const primaryModel = isFast ? "gemini-1.5-flash" : "gemini-1.5-flash";
-      const backupModel = isFast ? "gemini-1.5-flash" : "gemini-1.5-flash";
+      const primaryModel = isFast ? "gemini-3.6-flash" : "gemini-3.6-flash";
+      const backupModel = isFast ? "gemini-3.6-flash" : "gemini-3.6-flash";
 
       const systemInstruction = isFast
         ? "Bạn là trợ lý thẩm định học thuật siêu tốc, phản hồi nhanh gọn trong tích tắc. Bạn bắt buộc phải trả về một đối tượng JSON hợp lệ nằm gọn trong khối mã ```json ... ```."
