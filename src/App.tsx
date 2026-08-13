@@ -15,6 +15,9 @@ import { ExportPdfModal } from './components/ExportPdfModal';
 import { ReviewLogPanel } from './components/ReviewLogPanel';
 import { FolderPanel } from './components/FolderPanel';
 import { HelpCenterModal } from './components/HelpCenterModal';
+import { StreakConfigModal } from './components/StreakConfigModal';
+import { InteractiveGameSuite } from './components/InteractiveGameSuite';
+import { QuickBrainGamesModal } from './components/QuickBrainGamesModal';
 import { ReviewLog } from './types';
 
 export function getSetCategory(s: StudySet): 'languages' | 'tech' | 'stem' | 'social' {
@@ -42,7 +45,8 @@ import {
   Sparkles, Plus, Search, BookOpen, Star, 
   HelpCircle, Trash2, Edit3, Volume2, ArrowLeft,
   GraduationCap, Layers, Gamepad2, Flame, Trophy, Zap,
-  Printer, ClipboardCheck, Folder as FolderIcon, FolderPlus, X
+  Printer, ClipboardCheck, Folder as FolderIcon, FolderPlus, X, ShieldAlert,
+  GripVertical, SortAsc, Target
 } from 'lucide-react';
 
 export default function App() {
@@ -61,10 +65,15 @@ export default function App() {
   const [showAddToFolderModal, setShowAddToFolderModal] = useState<StudySet | null>(null);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [showHelpCenter, setShowHelpCenter] = useState(false);
+  const [showStreakModal, setShowStreakModal] = useState(false);
+  const [showDragDropSuite, setShowDragDropSuite] = useState(false);
+  const [showQuickBrainGames, setShowQuickBrainGames] = useState(false);
+  const [quickBrainInitialMode, setQuickBrainInitialMode] = useState<'true_false' | 'word_scramble' | 'hangman' | null>(null);
   const [streakInfo, setStreakInfo] = useState<StudyActivityData>({
     currentStreak: 0,
     longestStreak: 0,
     lastStudyDate: '',
+    freezeCount: 2,
     activityLog: {}
   });
 
@@ -341,21 +350,21 @@ export default function App() {
             {/* Duolingo Streak Flame Badge */}
             <div 
               id="header-streak-badge"
-              onClick={() => {
-                setCurrentSet(null);
-                setActiveMode(null);
-                setIsEditing(false);
-                setActiveTab('analytics');
-              }}
+              onClick={() => setShowStreakModal(true)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl cursor-pointer transition ${
                 streakInfo.currentStreak > 0
                   ? 'bg-orange-50 hover:bg-orange-100 text-orange-600 font-extrabold shadow-sm ring-1 ring-orange-500/10'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-400 font-bold'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold'
               }`}
-              title="Xem thống kê chuỗi ngày học của bạn 🔥"
+              title="Bấm để Tùy chỉnh / Cấu hình Streak 🔥"
             >
               <Flame size={16} fill={streakInfo.currentStreak > 0 ? 'currentColor' : 'none'} className={streakInfo.currentStreak > 0 ? 'animate-pulse text-orange-500' : ''} />
               <span className="text-xs">{streakInfo.currentStreak} ngày</span>
+              {streakInfo.freezeCount > 0 && (
+                <span className="flex items-center gap-0.5 text-[10px] font-mono font-black text-sky-600 bg-sky-100/80 px-1.5 py-0.5 rounded-md ml-0.5" title={`${streakInfo.freezeCount} vé Băng Bảo Vệ`}>
+                  🧊 {streakInfo.freezeCount}
+                </span>
+              )}
             </div>
 
             {/* Clear custom cache button */}
@@ -654,6 +663,95 @@ export default function App() {
                           </p>
                         </div>
                         <span className="text-xs font-bold text-blue-600 mt-4 block flex items-center gap-1">Ra sân đấu Cup <Gamepad2 size={12} /></span>
+                      </div>
+
+                      {/* Mode 7: Drag & Drop Master */}
+                      <div
+                        id="select-mode-drag-drop-master"
+                        onClick={() => setShowDragDropSuite(true)}
+                        className="group p-6 bg-gradient-to-br from-white to-slate-50/50 border border-slate-200 rounded-xl hover:border-purple-600 hover:shadow-sm transition-all duration-200 cursor-pointer flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="p-3 bg-purple-50 group-hover:bg-purple-100 text-purple-600 rounded-lg w-fit transition-all mb-4">
+                            <GripVertical size={20} className="group-hover:scale-110 transition-transform" />
+                          </div>
+                          <h4 className="font-bold text-base text-slate-850 tracking-tight transition-colors">
+                            Kéo Thả Trí Tuệ (Drag & Drop Master)
+                          </h4>
+                          <p className="text-xs text-slate-550 mt-1.5 leading-relaxed">
+                            Bộ 2 Mini-game phản xạ: Nối từ 2 cột 5x5 và Đoạn văn đục lỗ AI. Thao tác kéo thả mượt mà hoặc chạm chọn linh hoạt trên mọi thiết bị!
+                          </p>
+                        </div>
+                        <span className="text-xs font-bold text-purple-600 mt-4 block flex items-center gap-1">Thử thách kéo thả <Gamepad2 size={12} /></span>
+                      </div>
+
+                      {/* Mode 8: Speed True/False */}
+                      <div
+                        id="select-mode-true-false"
+                        onClick={() => {
+                          setQuickBrainInitialMode('true_false');
+                          setShowQuickBrainGames(true);
+                        }}
+                        className="group p-6 bg-gradient-to-br from-white to-amber-50/30 border border-slate-200 rounded-xl hover:border-amber-500 hover:shadow-sm transition-all duration-200 cursor-pointer flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="p-3 bg-amber-50 group-hover:bg-amber-100 text-amber-600 rounded-lg w-fit transition-all mb-4">
+                            <Zap size={20} className="group-hover:scale-110 transition-transform animate-pulse" />
+                          </div>
+                          <h4 className="font-bold text-base text-slate-850 tracking-tight transition-colors">
+                            Đúng Hay Sai Chớp Nhoáng ⚡
+                          </h4>
+                          <p className="text-xs text-slate-550 mt-1.5 leading-relaxed">
+                            Đếm ngược 4 giây! Quyết định Thuật ngữ & Định nghĩa bẫy do Gemini ghép là ĐÚNG hay SAI. Chuỗi đúng 5 câu nhận Combo X2 XP!
+                          </p>
+                        </div>
+                        <span className="text-xs font-bold text-amber-600 mt-4 block flex items-center gap-1">Thách thức phản xạ ⚡</span>
+                      </div>
+
+                      {/* Mode 9: Word Scramble AI */}
+                      <div
+                        id="select-mode-word-scramble"
+                        onClick={() => {
+                          setQuickBrainInitialMode('word_scramble');
+                          setShowQuickBrainGames(true);
+                        }}
+                        className="group p-6 bg-gradient-to-br from-white to-indigo-50/30 border border-slate-200 rounded-xl hover:border-indigo-600 hover:shadow-sm transition-all duration-200 cursor-pointer flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="p-3 bg-indigo-50 group-hover:bg-indigo-100 text-indigo-600 rounded-lg w-fit transition-all mb-4">
+                            <SortAsc size={20} className="group-hover:scale-110 transition-transform" />
+                          </div>
+                          <h4 className="font-bold text-base text-slate-850 tracking-tight transition-colors">
+                            Sắp Xếp Chữ Cái 🔤
+                          </h4>
+                          <p className="text-xs text-slate-550 mt-1.5 leading-relaxed">
+                            Chữ cái bị xáo trộn. Chạm ghép lại thành từ hoàn chỉnh và bật Gợi ý AI 💡 ngữ cảnh để suy luận thông minh!
+                          </p>
+                        </div>
+                        <span className="text-xs font-bold text-indigo-600 mt-4 block flex items-center gap-1">Chơi xếp chữ 🔤</span>
+                      </div>
+
+                      {/* Mode 10: Hangman Survival */}
+                      <div
+                        id="select-mode-hangman"
+                        onClick={() => {
+                          setQuickBrainInitialMode('hangman');
+                          setShowQuickBrainGames(true);
+                        }}
+                        className="group p-6 bg-gradient-to-br from-white to-rose-50/30 border border-slate-200 rounded-xl hover:border-rose-500 hover:shadow-sm transition-all duration-200 cursor-pointer flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="p-3 bg-rose-50 group-hover:bg-rose-100 text-rose-600 rounded-lg w-fit transition-all mb-4">
+                            <Target size={20} className="group-hover:scale-110 transition-transform" />
+                          </div>
+                          <h4 className="font-bold text-base text-slate-850 tracking-tight transition-colors">
+                            Đoán Chữ Cứu Mạng 🎯
+                          </h4>
+                          <p className="text-xs text-slate-550 mt-1.5 leading-relaxed">
+                            Hangman sinh tồn 6 trái tim. Bấm bàn phím đoán ký tự đúng hoặc gọi Cứu Trợ Gemini AI 🤖 khi còn dưới 3 mạng!
+                          </p>
+                        </div>
+                        <span className="text-xs font-bold text-rose-600 mt-4 block flex items-center gap-1">Đoán chữ cứu mạng 🎯</span>
                       </div>
 
 
@@ -1227,6 +1325,41 @@ export default function App() {
           setIsEditing(false);
         }}
       />
+
+      {/* Streak Config & Customization Admin Modal */}
+      <StreakConfigModal
+        isOpen={showStreakModal}
+        onClose={() => setShowStreakModal(false)}
+        streakData={streakInfo}
+      />
+
+      {/* Interactive Drag & Drop Game Suite Modal */}
+      {currentSet && (
+        <InteractiveGameSuite
+          isOpen={showDragDropSuite}
+          onClose={() => setShowDragDropSuite(false)}
+          studySetData={currentSet}
+          onGameComplete={() => {
+            // Refresh streak info dynamically
+            const updated = checkAndUpdateStreakOnLoad();
+            setStreakInfo(updated);
+          }}
+        />
+      )}
+
+      {/* Quick Brain Games 3 Mini-Games Modal */}
+      {currentSet && (
+        <QuickBrainGamesModal
+          isOpen={showQuickBrainGames}
+          onClose={() => setShowQuickBrainGames(false)}
+          studySetData={currentSet}
+          initialGameMode={quickBrainInitialMode}
+          onGameComplete={() => {
+            const updated = checkAndUpdateStreakOnLoad();
+            setStreakInfo(updated);
+          }}
+        />
+      )}
     </div>
   );
 }

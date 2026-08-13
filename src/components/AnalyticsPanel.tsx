@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { StudySet } from '../types';
 import { 
   Flame, Trophy, Activity, Sparkles, BookOpen, 
-  Award, CheckCircle2, Calendar, TrendingUp, RotateCcw, HelpCircle, GraduationCap
+  Award, CheckCircle2, Calendar, TrendingUp, RotateCcw, HelpCircle, GraduationCap,
+  ShieldAlert, Settings
 } from 'lucide-react';
 import { getStreakData, trackStudyActivity, checkAndUpdateStreakOnLoad, StudyActivityData } from '../utils/analytics';
+import { StreakConfigModal } from './StreakConfigModal';
 
 interface AnalyticsPanelProps {
   studySets: StudySet[];
@@ -15,11 +17,13 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ studySets }) => 
     currentStreak: 0,
     longestStreak: 0,
     lastStudyDate: '',
+    freezeCount: 2,
     activityLog: {}
   });
 
   const [spacedRepMap, setSpacedRepMap] = useState<Record<string, { status: 'again' | 'good' | 'easy'; nextReviewTime: number }>>({});
   const [isTooltipActive, setIsTooltipActive] = useState<string | null>(null);
+  const [showConfigModal, setShowConfigModal] = useState(false);
 
   // Sync and load data on mount
   useEffect(() => {
@@ -267,11 +271,23 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ studySets }) => 
           </div>
           
           <div className="relative z-10">
-            <div className="flex items-center gap-2">
-              <span className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
-                <Flame size={20} className="text-yellow-350 animate-bounce" fill="#fcb103" />
-              </span>
-              <span className="text-[10px] uppercase font-black tracking-widest text-amber-100">Chuỗi liên tục (Streak)</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
+                  <Flame size={20} className="text-yellow-350 animate-bounce" fill="#fcb103" />
+                </span>
+                <span className="text-[10px] uppercase font-black tracking-widest text-amber-100">Chuỗi liên tục (Streak)</span>
+              </div>
+              
+              <button
+                type="button"
+                onClick={() => setShowConfigModal(true)}
+                className="p-1.5 bg-white/20 hover:bg-white/30 rounded-xl text-white transition flex items-center gap-1 text-[10px] font-bold cursor-pointer"
+                title="Tùy chỉnh Streak (Admin)"
+              >
+                <Settings size={14} />
+                <span className="hidden sm:inline">Cấu hình</span>
+              </button>
             </div>
             
             <div className="mt-4 flex items-baseline gap-2">
@@ -286,6 +302,12 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ studySets }) => 
                 ? 'Đại tuyệt vời! Hãy duy trì ngọn lửa này hàng ngày, đừng để lỡ một ngày nhé!' 
                 : 'Ngọn lửa học thuật đang tắt. Hãy mở bất kỳ chế độ học tập nào để thắp sáng streak!'}
             </p>
+
+            {/* Freeze tickets status row */}
+            <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/15 rounded-lg text-2xs font-extrabold text-amber-50 border border-white/10">
+              <ShieldAlert size={12} className="text-sky-300 shrink-0" />
+              <span>Vé Băng bảo vệ: <strong className="font-mono text-white text-xs">{streakData.freezeCount || 0}</strong> vé</span>
+            </div>
           </div>
 
           <div className="border-t border-white/10 pt-4 mt-6 flex justify-between items-center text-xs relative z-10">
@@ -450,6 +472,12 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ studySets }) => 
         </div>
       </div>
 
+      {/* Streak Config Modal inside Analytics tab */}
+      <StreakConfigModal
+        isOpen={showConfigModal}
+        onClose={() => setShowConfigModal(false)}
+        streakData={streakData}
+      />
     </div>
   );
 };

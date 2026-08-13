@@ -1761,6 +1761,302 @@ YÊU CẦU:
     }
   });
 
+  // API Route: AI Cloze Test Generator for Drag & Drop mini game
+  app.post("/api/cloze-generator", async (req, res) => {
+    const { title, cards } = req.body;
+
+    if (!Array.isArray(cards) || cards.length === 0) {
+      res.status(400).json({ error: "Thẻ học phần không hợp lệ!" });
+      return;
+    }
+
+    const targetCards = cards.slice(0, 5);
+
+    try {
+      const ai = getGeminiClient(req);
+      const prompt = `Bạn là một chuyên gia biên soạn giáo trình học tập.
+Hãy sử dụng bộ từ vựng thuộc chủ đề "${title || 'Học tập'}" sau đây:
+${JSON.stringify(targetCards.map(c => ({ term: c.term, definition: c.definition, example: c.example || '' })))}
+
+YÊU CẦU:
+1. Viết 1 đoạn văn ngắn tự nhiên (3-5 câu) bằng tiếng Việt hoặc tiếng Anh kết hợp hợp lý chủ đề trên.
+2. Trong đoạn văn, hãy đặt đúng từ vựng thuật ngữ (term) vào câu. Thay thế mỗi từ thuật ngữ này bằng ký hiệu "[___]".
+3. Tạo ra cấu trúc JSON như sau:
+{
+  "story": "Đoạn văn ngắn có chứa [___] ở vị trí các từ đục lỗ...",
+  "blanks": [
+    { "id": "b1", "correctTerm": "từ_thuật_ngữ_1", "hint": "Gợi ý hoặc định nghĩa" }
+  ],
+  "distractors": ["từ_gây_nhiễu_1", "từ_gây_nhiễu_2"]
+}`;
+
+      const responseSchema = {
+        type: Type.OBJECT,
+        properties: {
+          story: { type: Type.STRING },
+          blanks: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                correctTerm: { type: Type.STRING },
+                hint: { type: Type.STRING }
+              },
+              required: ["id", "correctTerm"]
+            }
+          },
+          distractors: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING }
+          }
+        },
+        required: ["story", "blanks"]
+      };
+
+      const response = await generateContentWithRetry(ai, {
+        model: "gemini-3.6-flash",
+        contents: prompt,
+        config: {
+          systemInstruction: "Bạn là giáo viên ngoại ngữ xuất sắc, tạo bài tập Cloze Test tự nhiên, truyền cảm hứng.",
+          responseMimeType: "application/json",
+          responseSchema: responseSchema
+        }
+      });
+
+      const responseText = response.text;
+      if (!responseText) throw new Error("Không nhận được phản hồi từ Gemini.");
+
+      res.json(JSON.parse(responseText.trim()));
+    } catch (error: any) {
+      console.log(`[Cloze AI Generator Fallback]: ${error?.message || error}`);
+      
+      // Fallback local smart cloze generator
+      const blanks = targetCards.map((c, idx) => ({
+        id: `b_${idx + 1}`,
+        correctTerm: c.term,
+        hint: c.definition || 'Từ cần điền'
+      }));
+
+      const storyParts = targetCards.map((c, idx) => 
+        `Câu ${idx + 1}: Trong chủ đề ${title || 'học tập'}, thuật ngữ [___] có nghĩa là "${c.definition || 'kiến thức trọng tâm'}".`
+      );
+
+      res.json({
+        story: storyParts.join(" "),
+        blanks,
+        distractors: []
+      });
+    }
+  });
+
+  // API Route: AI Content Generator for Quick Brain Games (True/False, Word Scramble, Hangman)
+  app.post("/api/game-content-generator", async (req, res) => {
+    const { title, cards, gameType } = req.body;
+
+    if (!Array.isArray(cards) || cards.length === 0) {
+      res.status(400).json({ error: "Danh sách thẻ học phần không hợp lệ!" });
+      return;
+    }
+
+    const sampleCards = [...cards].sort(() => 0.5 - Math.random()).slice(0, 10);
+
+    try {
+      const ai = getGeminiClient(req);
+      const prompt = `Bạn là chuyên gia giáo dục thiết kế các mini-game ôn tập từ vựng độc đáo.
+Chủ đề học phần: "${title || 'Từ vựng trọng tâm'}"
+Danh sách từ vựng:
+${JSON.stringify(sampleCards.map(c => ({ id: c.id, term: c.term, definition: c.definition, example: c.example || '' })))}
+
+YÊU CẦU DỮ LIỆU GAME (${gameType || 'ALL'}):
+1. trueFalsePairs: Tạo 6-10 câu trắc nghiệm Đúng/Sai. Khoảng 50% câu ghép ĐÚNG thuật ngữ với định nghĩa thật. 50% câu ghép SAI thuật ngữ với định nghĩa bẫy tự nhiên do bạn biên soạn lại hoặc hoán đổi.
+2. wordScrambleItems: Tạo danh sách các từ với gợi ý ngữ cảnh ngắn gọn (aiHint) và 1 câu ví dụ minh họa (exampleSentence) có đục lỗ từ đó.
+3. hangmanItems: Tạo danh sách từ với gợi ý thông minh (aiHint) và gợi ý đặc biệt (revealLetterHint).
+
+Trả về cấu trúc JSON chính xác:
+{
+  "trueFalsePairs": [
+    { "id": "tf_1", "term": "Thù_thuật", "displayDefinition": "Định nghĩa hiển thị...", "isTrue": true, "originalDefinition": "Định nghĩa thật..." }
+  ],
+  "wordScrambleItems": [
+    { "id": "ws_1", "term": "Term1", "definition": "Định nghĩa...", "aiHint": "Gợi ý ngữ cảnh...", "exampleSentence": "Câu ví dụ minh họa..." }
+  ],
+  "hangmanItems": [
+    { "id": "hm_1", "term": "Term1", "definition": "Định nghĩa...", "aiHint": "Gợi ý thông minh...", "revealLetterHint": "Gợi ý chữ cái..." }
+  ]
+}`;
+
+      const responseSchema = {
+        type: Type.OBJECT,
+        properties: {
+          trueFalsePairs: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                term: { type: Type.STRING },
+                displayDefinition: { type: Type.STRING },
+                isTrue: { type: Type.BOOLEAN },
+                originalDefinition: { type: Type.STRING }
+              },
+              required: ["id", "term", "displayDefinition", "isTrue"]
+            }
+          },
+          wordScrambleItems: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                term: { type: Type.STRING },
+                definition: { type: Type.STRING },
+                aiHint: { type: Type.STRING },
+                exampleSentence: { type: Type.STRING }
+              },
+              required: ["id", "term", "definition", "aiHint"]
+            }
+          },
+          hangmanItems: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                term: { type: Type.STRING },
+                definition: { type: Type.STRING },
+                aiHint: { type: Type.STRING },
+                revealLetterHint: { type: Type.STRING }
+              },
+              required: ["id", "term", "definition", "aiHint"]
+            }
+          }
+        },
+        required: ["trueFalsePairs", "wordScrambleItems", "hangmanItems"]
+      };
+
+      const response = await generateContentWithRetry(ai, {
+        model: "gemini-3.6-flash",
+        contents: prompt,
+        config: {
+          systemInstruction: "Bạn là AI thiết kế mini-game tương tác hấp dẫn, tạo gợi ý và bẫy trắc nghiệm thông minh.",
+          responseMimeType: "application/json",
+          responseSchema: responseSchema
+        }
+      });
+
+      const responseText = response.text;
+      if (!responseText) throw new Error("Không nhận được phản hồi từ Gemini AI.");
+
+      res.json(JSON.parse(responseText.trim()));
+    } catch (error: any) {
+      console.log(`[Game Content AI Fallback]: ${error?.message || error}`);
+
+      // Robust local fallback generator
+      const trueFalsePairs = sampleCards.map((c, idx) => {
+        const isTrue = idx % 2 === 0;
+        const otherCard = sampleCards[(idx + 1) % sampleCards.length];
+        return {
+          id: `tf_fb_${idx}`,
+          term: c.term,
+          displayDefinition: isTrue ? c.definition : otherCard.definition,
+          isTrue: isTrue,
+          originalDefinition: c.definition
+        };
+      }).sort(() => 0.5 - Math.random());
+
+      const wordScrambleItems = sampleCards.map((c, idx) => ({
+        id: `ws_fb_${idx}`,
+        term: c.term,
+        definition: c.definition,
+        aiHint: `Từ vựng gồm ${c.term.length} ký tự liên quan đến: ${c.definition}`,
+        exampleSentence: c.example || `Ví dụ: [${c.term}] là khái niệm cần nhớ.`
+      }));
+
+      const hangmanItems = sampleCards.map((c, idx) => ({
+        id: `hm_fb_${idx}`,
+        term: c.term,
+        definition: c.definition,
+        aiHint: `Thuật ngữ có ${c.term.length} chữ cái, nghĩa là: ${c.definition}`,
+        revealLetterHint: `Gợi ý: Bắt đầu bằng chữ cái '${c.term.charAt(0).toUpperCase()}'`
+      }));
+
+      res.json({
+        trueFalsePairs,
+        wordScrambleItems,
+        hangmanItems
+      });
+    }
+  });
+
+  // API Route: AI On-Demand Game Assist / Hint Generator
+  app.post("/api/game-ai-assist", async (req, res) => {
+    const { gameType, term, definition, displayDefinition, isTrue, title } = req.body;
+
+    if (!term) {
+      res.status(400).json({ error: "Thiếu thông tin thuật ngữ cần gợi ý!" });
+      return;
+    }
+
+    try {
+      const ai = getGeminiClient(req);
+      const prompt = `Bạn là trợ lý học tập AI thông minh cho mini-game ôn từ vựng.
+Chủ đề học phần: "${title || 'Học tập'}"
+Loại game: "${gameType || 'general'}"
+Thuật ngữ (Term): "${term}"
+Định nghĩa gốc: "${definition || ''}"
+${displayDefinition ? `Định nghĩa hiển thị (trên màn hình): "${displayDefinition}" (Khẳng định này là ${isTrue ? 'ĐÚNG' : 'SAI'})` : ''}
+
+YÊU CẦU:
+Tạo 1 gợi ý ngắn gọn (1-2 câu), vô cùng thông minh, lôi cuốn giúp người chơi đoán/hiểu rõ câu trả lời mà KHÔNG trực tiếp nói thẳng đáp án chính xác.
+1. Nếu là game True/False: Đưa ra 1 gợi ý ngữ cảnh hoặc mấu chốt để người chơi suy luận xem định nghĩa hiển thị kia có ĐÚNG với từ "${term}" không.
+2. Nếu là game Word Scramble: Đưa ra 1 gợi ý ngữ cảnh + 1 câu ví dụ minh họa đục lỗ vị trí từ "${term}" (dùng ký hiệu [___]).
+3. Nếu là game Hangman: Đưa ra 1 gợi ý thông minh về lĩnh vực, ngữ cảnh hoặc đặc điểm của từ "${term}".
+
+Trả về JSON:
+{
+  "hint": "Nội dung gợi ý súc tích...",
+  "exampleSentence": "Câu ví dụ minh họa có chứa [___] (nếu có)..."
+}`;
+
+      const response = await generateContentWithRetry(ai, {
+        model: "gemini-3.6-flash",
+        contents: prompt,
+        config: {
+          systemInstruction: "Bạn là AI trợ lý gợi ý thông minh, giúp người học tư duy từ vựng một cách hào hứng.",
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              hint: { type: Type.STRING },
+              exampleSentence: { type: Type.STRING }
+            },
+            required: ["hint"]
+          }
+        }
+      });
+
+      const responseText = response.text;
+      if (!responseText) throw new Error("Không nhận được phản hồi từ Gemini AI.");
+
+      res.json(JSON.parse(responseText.trim()));
+    } catch (error: any) {
+      console.log(`[Game AI Assist Fallback]: ${error?.message || error}`);
+      
+      let hintText = `Gợi ý local: Thuật ngữ "${term}" gồm ${term.length} chữ cái, bắt đầu bằng chữ '${term.charAt(0).toUpperCase()}'.`;
+      if (gameType === 'true_false') {
+        hintText = `Gợi ý: Thuật ngữ "${term}" có định nghĩa gốc chính xác là "${definition || 'kiến thức bài học'}".`;
+      } else if (gameType === 'hangman') {
+        hintText = `Gợi ý: Thuật ngữ có ${term.length} chữ cái. Bắt đầu bằng '${term.charAt(0).toUpperCase()}' và kết thúc bằng '${term.charAt(term.length - 1).toUpperCase()}'.`;
+      }
+
+      res.json({
+        hint: hintText,
+        exampleSentence: `Ví dụ: [___] là thuật ngữ trọng tâm trong bài học.`
+      });
+    }
+  });
+
   // Vite development vs Production asset serving
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
