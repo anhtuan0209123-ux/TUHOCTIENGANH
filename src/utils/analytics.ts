@@ -9,8 +9,16 @@ export interface StudyActivityData {
 
 const STORAGE_KEY = 'quizlet_analytics_streak';
 
+export const getTodayDateString = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export function getTodayStr(): string {
-  return new Date().toLocaleDateString('sv-SE');
+  return getTodayDateString();
 }
 
 export function getDaysDiff(dateStr1: string, dateStr2: string): number {
@@ -26,18 +34,23 @@ export function getDaysDiff(dateStr1: string, dateStr2: string): number {
 }
 
 export function getStreakData(): StudyActivityData {
+  const todayStr = getTodayDateString();
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed && typeof parsed === 'object') {
+        const activityLog = parsed.activityLog && typeof parsed.activityLog === 'object' ? parsed.activityLog : {};
+        if (activityLog[todayStr] === undefined) {
+          activityLog[todayStr] = 0;
+        }
         return {
           currentStreak: typeof parsed.currentStreak === 'number' ? Math.max(0, parsed.currentStreak) : 0,
           longestStreak: typeof parsed.longestStreak === 'number' ? Math.max(0, parsed.longestStreak) : 0,
           lastStudyDate: typeof parsed.lastStudyDate === 'string' ? parsed.lastStudyDate : '',
           freezeCount: typeof parsed.freezeCount === 'number' ? Math.max(0, parsed.freezeCount) : 2,
           lastFreezeUsedDate: typeof parsed.lastFreezeUsedDate === 'string' ? parsed.lastFreezeUsedDate : '',
-          activityLog: parsed.activityLog && typeof parsed.activityLog === 'object' ? parsed.activityLog : {}
+          activityLog
         };
       }
     }
@@ -50,24 +63,34 @@ export function getStreakData(): StudyActivityData {
     lastStudyDate: '',
     freezeCount: 2, // Mặc định tặng 2 vé freeze bảo vệ khi khởi tạo
     lastFreezeUsedDate: '',
-    activityLog: {}
+    activityLog: { [todayStr]: 0 }
   };
 }
 
 export function saveStreakData(data: StudyActivityData): StudyActivityData {
   // Always maintain longest streak
   data.longestStreak = Math.max(data.longestStreak, data.currentStreak);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  const todayStr = getTodayDateString();
+  if (data.activityLog[todayStr] === undefined) {
+    data.activityLog[todayStr] = 0;
+  }
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error("Error saving streak data:", e);
+  }
   
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('study-activity-logged', { detail: data }));
+    window.dispatchEvent(new Event('activity_log_updated'));
   }
   return data;
 }
 
 export function checkAndUpdateStreakOnLoad(): StudyActivityData {
   const data = getStreakData();
-  const todayStr = getTodayStr();
+  const todayStr = getTodayDateString();
 
   if (data.lastStudyDate && data.lastStudyDate !== todayStr) {
     const daysDiff = getDaysDiff(data.lastStudyDate, todayStr);
@@ -84,7 +107,10 @@ export function checkAndUpdateStreakOnLoad(): StudyActivityData {
         // Calculate the date that is yesterday
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toLocaleDateString('sv-SE');
+        const yYear = yesterday.getFullYear();
+        const yMonth = String(yesterday.getMonth() + 1).padStart(2, '0');
+        const yDay = String(yesterday.getDate()).padStart(2, '0');
+        const yesterdayStr = `${yYear}-${yMonth}-${yDay}`;
         
         data.lastFreezeUsedDate = yesterdayStr;
 
@@ -110,7 +136,7 @@ export function checkAndUpdateStreakOnLoad(): StudyActivityData {
 
 export function trackStudyActivity(count: number = 1): StudyActivityData {
   const data = getStreakData();
-  const todayStr = getTodayStr();
+  const todayStr = getTodayDateString();
   
   // 1. Update activity log
   data.activityLog[todayStr] = (data.activityLog[todayStr] || 0) + count;
@@ -166,7 +192,7 @@ export function updateStreakConfig(updates: {
   markTodayStudied?: boolean;
 }): StudyActivityData {
   const data = getStreakData();
-  const todayStr = getTodayStr();
+  const todayStr = getTodayDateString();
 
   if (updates.resetStreak) {
     data.currentStreak = 0;

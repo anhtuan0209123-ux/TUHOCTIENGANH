@@ -46,10 +46,32 @@ import {
   HelpCircle, Trash2, Edit3, Volume2, ArrowLeft,
   GraduationCap, Layers, Gamepad2, Flame, Trophy, Zap,
   Printer, ClipboardCheck, Folder as FolderIcon, FolderPlus, X, ShieldAlert,
-  GripVertical, SortAsc, Target
+  GripVertical, SortAsc, Target, Moon, Sun
 } from 'lucide-react';
 
 export default function App() {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
   const [studySets, setStudySets] = useState<StudySet[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [currentSet, setCurrentSet] = useState<StudySet | null>(null);
@@ -310,13 +332,13 @@ export default function App() {
   });
 
   return (
-    <div className="bg-[#fafbfc] min-h-screen text-slate-900 font-sans antialiased pb-16">
+    <div className="bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-100 font-sans antialiased pb-16 transition-colors duration-200">
       <div className="no-print">
         {/* Top bar for user GEMINI_API_KEY management */}
         <ApiKeyHeaderBar />
 
         {/* Dynamic Header Navbar banner */}
-        <header className="sticky top-0 bg-white border-b border-slate-100 z-50">
+        <header className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 z-50 transition-colors duration-200 shadow-xs">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div 
             onClick={() => {
@@ -326,23 +348,43 @@ export default function App() {
             }} 
             className="flex items-center gap-2.5 cursor-pointer hover:opacity-90 transition-opacity"
           >
-            <div className="bg-brand text-white p-2.5 rounded-xl flex items-center justify-center">
+            <div className="bg-brand text-white p-2.5 rounded-xl flex items-center justify-center shadow-xs">
               <GraduationCap size={20} />
             </div>
-            <span className="font-extrabold text-xl tracking-tight text-brand">
+            <span className="font-extrabold text-xl tracking-tight text-brand dark:text-indigo-400">
               HỌC THUỘC THÔNG MINH
             </span>
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* Sleek Animated Theme Switcher Button */}
+            <button
+              id="header-theme-toggle-btn"
+              onClick={toggleTheme}
+              className="relative flex items-center w-14 h-8 p-1 bg-slate-200 dark:bg-slate-800 rounded-full transition-colors duration-300 border border-slate-300/80 dark:border-slate-700 cursor-pointer shadow-inner focus:outline-none shrink-0"
+              title={theme === 'dark' ? "Chuyển sang Chế độ Sáng (Light Mode)" : "Chuyển sang Chế độ Tối (Dark Mode)"}
+            >
+              <div
+                className={`w-6 h-6 rounded-full bg-white dark:bg-slate-900 shadow-md transform transition-transform duration-300 flex items-center justify-center text-slate-800 dark:text-amber-300 ${
+                  theme === 'dark' ? 'translate-x-6' : 'translate-x-0'
+                }`}
+              >
+                {theme === 'dark' ? (
+                  <Sun size={13} className="text-amber-400 fill-amber-400" />
+                ) : (
+                  <Moon size={13} className="text-indigo-600 fill-indigo-600" />
+                )}
+              </div>
+            </button>
+
             {/* Help & Guide Center Button */}
             <button
               id="header-help-center-btn"
               onClick={() => setShowHelpCenter(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-light hover:bg-indigo-100 text-brand font-extrabold text-xs rounded-xl transition cursor-pointer shadow-2xs border border-brand/10 hover:border-brand/20"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-light dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 text-brand dark:text-indigo-300 font-extrabold text-xs rounded-xl transition cursor-pointer shadow-2xs border border-brand/10 dark:border-indigo-500/20"
               title="Trung tâm Hướng dẫn & Video Tutorial"
             >
-              <HelpCircle size={16} className="text-brand" />
+              <HelpCircle size={16} className="text-brand dark:text-indigo-400" />
               <span className="hidden sm:inline">Hướng dẫn & Trợ giúp</span>
               <span className="sm:hidden">Trợ giúp</span>
             </button>
@@ -353,15 +395,15 @@ export default function App() {
               onClick={() => setShowStreakModal(true)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl cursor-pointer transition ${
                 streakInfo.currentStreak > 0
-                  ? 'bg-orange-50 hover:bg-orange-100 text-orange-600 font-extrabold shadow-sm ring-1 ring-orange-500/10'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold'
+                  ? 'bg-orange-50 dark:bg-orange-950/50 hover:bg-orange-100 dark:hover:bg-orange-900/60 text-orange-600 dark:text-orange-400 font-extrabold shadow-sm ring-1 ring-orange-500/10 dark:ring-orange-500/30'
+                  : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-400 font-bold'
               }`}
               title="Bấm để Tùy chỉnh / Cấu hình Streak 🔥"
             >
               <Flame size={16} fill={streakInfo.currentStreak > 0 ? 'currentColor' : 'none'} className={streakInfo.currentStreak > 0 ? 'animate-pulse text-orange-500' : ''} />
               <span className="text-xs">{streakInfo.currentStreak} ngày</span>
               {streakInfo.freezeCount > 0 && (
-                <span className="flex items-center gap-0.5 text-[10px] font-mono font-black text-sky-600 bg-sky-100/80 px-1.5 py-0.5 rounded-md ml-0.5" title={`${streakInfo.freezeCount} vé Băng Bảo Vệ`}>
+                <span className="flex items-center gap-0.5 text-[10px] font-mono font-black text-sky-600 dark:text-sky-300 bg-sky-100/80 dark:bg-sky-900/60 px-1.5 py-0.5 rounded-md ml-0.5" title={`${streakInfo.freezeCount} vé Băng Bảo Vệ`}>
                   🧊 {streakInfo.freezeCount}
                 </span>
               )}
@@ -373,7 +415,7 @@ export default function App() {
               onClick={() => {
                 setShowResetConfirm(true);
               }}
-              className="text-xs font-semibold text-slate-400 hover:text-slate-650 px-2 py-1 hover:bg-slate-50 rounded-lg transition"
+              className="text-xs font-semibold text-slate-400 dark:text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 px-2 py-1 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition"
               title="Khôi phục trạng thái ban đầu"
             >
               Đặt lại mẫu mặc định
@@ -850,13 +892,13 @@ export default function App() {
           /* MAIN DASHBOARD (STUDY SETS & AI GENERATOR TABS) */
           <div className="space-y-8">
             {/* Visual Hero Panel Banner */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-8 sm:p-10 shadow-xs relative overflow-hidden">
-              <div className="absolute -right-10 -top-10 w-44 h-44 bg-blue-50/50 rounded-full blur-3xl pointer-events-none" />
+            <div className="bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl p-8 sm:p-10 shadow-xs relative overflow-hidden transition-colors">
+              <div className="absolute -right-10 -top-10 w-44 h-44 bg-blue-50/50 dark:bg-indigo-900/20 rounded-full blur-3xl pointer-events-none" />
               <div className="relative z-10 max-w-2xl">
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 leading-tight">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
                   Bóc Tách Tài Liệu & Học Thuộc Thông Minh!
                 </h1>
-                <p className="text-sm sm:text-base text-slate-500 mt-2 leading-relaxed">
+                <p className="text-sm sm:text-base text-slate-500 dark:text-slate-300 mt-2 leading-relaxed">
                   Nhập hoặc dán tài liệu nguồn, văn bản hay ghi chú bài học của bạn. AI Gemini sẽ tự động phân tích và trích xuất nguyên vẹn cụm từ ghép thành các thẻ Flashcard sẵn sàng ôn luyện.
                 </p>
                 <div className="flex flex-wrap gap-3 mt-6">
@@ -870,14 +912,14 @@ export default function App() {
                   <button
                     id="hero-switch-ai-generator"
                     onClick={() => setActiveTab('ai')}
-                    className="px-5 py-3 bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 rounded-lg font-bold text-sm flex items-center gap-1.5 transition cursor-pointer"
+                    className="px-5 py-3 bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg font-bold text-sm flex items-center gap-1.5 transition cursor-pointer"
                   >
-                    <Sparkles size={16} className="text-brand" /> Bóc tách tài liệu AI
+                    <Sparkles size={16} className="text-brand dark:text-indigo-400" /> Bóc tách tài liệu AI
                   </button>
                   <button
                     id="hero-open-help-center"
                     onClick={() => setShowHelpCenter(true)}
-                    className="px-5 py-3 bg-indigo-50 text-brand border border-indigo-200/80 hover:bg-indigo-100/80 rounded-lg font-bold text-sm flex items-center gap-1.5 transition cursor-pointer"
+                    className="px-5 py-3 bg-indigo-50 dark:bg-indigo-950/60 text-brand dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 hover:bg-indigo-100/80 dark:hover:bg-indigo-900/60 rounded-lg font-bold text-sm flex items-center gap-1.5 transition cursor-pointer"
                   >
                     <HelpCircle size={16} /> Hướng dẫn & Video
                   </button>
@@ -886,14 +928,14 @@ export default function App() {
             </div>
 
             {/* Main Tabs controller */}
-            <div className="flex border-b border-slate-200">
+            <div className="flex border-b border-slate-200 dark:border-slate-700">
               <button
                 id="tab-study-sets"
                 onClick={() => setActiveTab('sets')}
                 className={`py-3.5 px-6 font-bold text-sm border-b-2 transition flex items-center gap-2 cursor-pointer ${
                   activeTab === 'sets'
-                    ? 'border-brand text-brand font-extrabold'
-                    : 'border-transparent text-slate-500 hover:text-slate-705'
+                    ? 'border-brand text-brand dark:text-indigo-400 font-extrabold'
+                    : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
                 <BookOpen size={16} />
@@ -904,11 +946,11 @@ export default function App() {
                 onClick={() => setActiveTab('folders')}
                 className={`py-3.5 px-6 font-bold text-sm border-b-2 transition flex items-center gap-2 cursor-pointer ${
                   activeTab === 'folders'
-                    ? 'border-brand text-brand font-extrabold'
-                    : 'border-transparent text-slate-500 hover:text-slate-705'
+                    ? 'border-brand text-brand dark:text-indigo-400 font-extrabold'
+                    : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
-                <FolderIcon size={16} className={activeTab === 'folders' ? 'text-brand' : 'text-slate-400'} />
+                <FolderIcon size={16} className={activeTab === 'folders' ? 'text-brand dark:text-indigo-400' : 'text-slate-400'} />
                 <span>Thư mục phân loại ({folders.length})</span>
               </button>
               <button
@@ -916,11 +958,11 @@ export default function App() {
                 onClick={() => setActiveTab('ai')}
                 className={`py-3.5 px-6 font-bold text-sm border-b-2 transition flex items-center gap-2 cursor-pointer ${
                   activeTab === 'ai'
-                    ? 'border-brand text-brand font-extrabold'
-                    : 'border-transparent text-slate-500 hover:text-slate-705'
+                    ? 'border-brand text-brand dark:text-indigo-400 font-extrabold'
+                    : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
-                <Sparkles size={16} className="text-brand" />
+                <Sparkles size={16} className="text-brand dark:text-indigo-400" />
                 <span>Bóc tách tài liệu AI</span>
               </button>
               <button
@@ -928,8 +970,8 @@ export default function App() {
                 onClick={() => setActiveTab('analytics')}
                 className={`py-3.5 px-6 font-bold text-sm border-b-2 transition flex items-center gap-2 cursor-pointer ${
                   activeTab === 'analytics'
-                    ? 'border-brand text-brand font-extrabold'
-                    : 'border-transparent text-slate-500 hover:text-slate-705'
+                    ? 'border-brand text-brand dark:text-indigo-400 font-extrabold'
+                    : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
                 <Flame size={16} className={streakInfo.currentStreak > 0 ? 'text-orange-500 animate-pulse' : 'text-slate-400'} />
@@ -971,14 +1013,14 @@ export default function App() {
                 {/* Search query field & Category toggles */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                   {/* Category choices */}
-                  <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl w-fit">
+                  <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 w-fit">
                     <button
                       id="category-all-btn"
                       onClick={() => setSelectedCategory('all')}
                       className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
                         selectedCategory === 'all'
-                          ? 'bg-white shadow-xs text-slate-900'
-                          : 'text-slate-500 hover:text-slate-800'
+                          ? 'bg-white dark:bg-slate-700 shadow-xs text-slate-900 dark:text-white'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                       }`}
                     >
                       Tất cả
@@ -988,8 +1030,8 @@ export default function App() {
                       onClick={() => setSelectedCategory('languages')}
                       className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
                         selectedCategory === 'languages'
-                          ? 'bg-white shadow-xs text-brand font-extrabold'
-                          : 'text-slate-500 hover:text-slate-800'
+                          ? 'bg-white dark:bg-slate-700 shadow-xs text-brand dark:text-indigo-400 font-extrabold'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                       }`}
                     >
                       🇬🇧 Ngoại Ngữ
@@ -999,8 +1041,8 @@ export default function App() {
                       onClick={() => setSelectedCategory('tech')}
                       className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
                         selectedCategory === 'tech'
-                          ? 'bg-white shadow-xs text-indigo-700 font-extrabold'
-                          : 'text-slate-500 hover:text-slate-800'
+                          ? 'bg-white dark:bg-slate-700 shadow-xs text-indigo-700 dark:text-indigo-300 font-extrabold'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                       }`}
                     >
                       💻 Lập Trình & CNTT
@@ -1010,8 +1052,8 @@ export default function App() {
                       onClick={() => setSelectedCategory('stem')}
                       className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
                         selectedCategory === 'stem'
-                          ? 'bg-white shadow-xs text-emerald-700 font-extrabold'
-                          : 'text-slate-500 hover:text-slate-800'
+                          ? 'bg-white dark:bg-slate-700 shadow-xs text-emerald-700 dark:text-emerald-400 font-extrabold'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                       }`}
                     >
                       📐 Khoa Học Tự Nhiên
@@ -1021,8 +1063,8 @@ export default function App() {
                       onClick={() => setSelectedCategory('social')}
                       className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
                         selectedCategory === 'social'
-                          ? 'bg-white shadow-xs text-amber-700 font-extrabold'
-                          : 'text-slate-500 hover:text-slate-800'
+                          ? 'bg-white dark:bg-slate-700 shadow-xs text-amber-700 dark:text-amber-400 font-extrabold'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                       }`}
                     >
                       📖 Xã Hội & Khảo Thí
@@ -1032,8 +1074,8 @@ export default function App() {
                       onClick={() => setSelectedCategory('fav')}
                       className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
                         selectedCategory === 'fav'
-                          ? 'bg-white shadow-xs text-amber-600 font-extrabold'
-                          : 'text-slate-500 hover:text-slate-800'
+                          ? 'bg-white dark:bg-slate-700 shadow-xs text-amber-600 dark:text-amber-300 font-extrabold'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                       }`}
                     >
                       ⭐ Yêu thích
@@ -1043,8 +1085,8 @@ export default function App() {
                       onClick={() => setSelectedCategory('custom')}
                       className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
                         selectedCategory === 'custom'
-                          ? 'bg-white shadow-xs text-blue-600 font-extrabold'
-                          : 'text-slate-500 hover:text-slate-800'
+                          ? 'bg-white dark:bg-slate-700 shadow-xs text-blue-600 dark:text-indigo-400 font-extrabold'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                       }`}
                     >
                       ✏️ Do bạn tạo
@@ -1060,7 +1102,7 @@ export default function App() {
                       placeholder="Tìm kiếm bài học học phần..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 focus:border-brand focus:ring-2 focus:ring-brand/10 rounded-xl outline-none font-medium text-xs transition"
+                      className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-brand dark:focus:border-indigo-500 focus:ring-2 focus:ring-brand/10 rounded-xl outline-none font-medium text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition"
                     />
                   </div>
                 </div>
@@ -1080,10 +1122,10 @@ export default function App() {
                   </div>
                 ) : (
                   /* Empty state placeholder */
-                  <div id="empty-sets-alert" className="p-12 text-center bg-white rounded-xl border border-slate-100 py-16">
-                    <BookOpen size={48} className="mx-auto text-slate-300 mb-3 animate-pulse" />
-                    <h3 className="font-extrabold text-slate-800 text-lg">Không tìm thấy bài học nào</h3>
-                    <p className="text-slate-400 text-xs mt-1 max-w-sm mx-auto">
+                  <div id="empty-sets-alert" className="p-12 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 py-16">
+                    <BookOpen size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-3 animate-pulse" />
+                    <h3 className="font-extrabold text-slate-800 dark:text-slate-200 text-lg">Không tìm thấy bài học nào</h3>
+                    <p className="text-slate-400 dark:text-slate-400 text-xs mt-1 max-w-sm mx-auto">
                       {searchQuery
                         ? 'Thử thay đổi từ khóa tìm kiếm hoặc lọc các học phần của bạn.'
                         : 'Bạn chưa tạo học phần cá nhân nào. Hãy chuyển qua Trợ lý học thuật AI để sinh thẻ học nhanh chóng!'}
@@ -1092,7 +1134,7 @@ export default function App() {
                       {searchQuery && (
                         <button
                           onClick={() => setSearchQuery('')}
-                          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-xs font-bold rounded-lg text-slate-600 transition cursor-pointer"
+                          className="px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-xs font-bold rounded-lg text-slate-600 dark:text-slate-300 transition cursor-pointer"
                         >
                           Xóa bộ lọc tìm kiếm
                         </button>
@@ -1115,18 +1157,18 @@ export default function App() {
       {/* CUSTOM CONFIRMATION MODAL FOR DELETING STUDY SET */}
       {deleteSetId && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl border border-slate-100 p-6 shadow-xl animate-scale-up">
-            <div className="flex items-center gap-3 text-rose-600 mb-4">
-              <div className="p-2 bg-rose-50 rounded-full">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl border border-slate-200/80 dark:border-slate-700/80 p-6 shadow-xl animate-scale-up">
+            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400 mb-4">
+              <div className="p-2 bg-rose-50 dark:bg-rose-950/60 rounded-full">
                 <Trash2 size={24} />
               </div>
               <h3 className="text-lg font-bold">Xác nhận xóa học phần</h3>
             </div>
             
-            <p className="text-slate-650 text-sm leading-relaxed mb-1 font-semibold">
+            <p className="text-slate-700 dark:text-slate-200 text-sm leading-relaxed mb-1 font-semibold">
               Bạn có chắc chắn muốn xóa học phần này không?
             </p>
-            <p className="text-slate-400 text-xs leading-relaxed mb-6">
+            <p className="text-slate-400 dark:text-slate-400 text-xs leading-relaxed mb-6">
               Mọi thẻ từ và thông tin liên quan đến học phần này sẽ bị xóa vĩnh viễn khỏi thiết bị của bạn và không thể khôi phục lại.
             </p>
 
@@ -1134,7 +1176,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setDeleteSetId(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-250 rounded-xl transition cursor-pointer"
+                className="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl transition cursor-pointer"
               >
                 Hủy bỏ
               </button>
@@ -1153,18 +1195,18 @@ export default function App() {
       {/* CUSTOM CONFIRMATION MODAL FOR RESETTING DEFAULTS */}
       {showResetConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl border border-slate-100 p-6 shadow-xl animate-scale-up">
-            <div className="flex items-center gap-3 text-amber-600 mb-4">
-              <div className="p-2 bg-amber-50 rounded-full">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl border border-slate-200/80 dark:border-slate-700/80 p-6 shadow-xl animate-scale-up">
+            <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400 mb-4">
+              <div className="p-2 bg-amber-50 dark:bg-amber-950/60 rounded-full">
                 <HelpCircle size={24} />
               </div>
               <h3 className="text-lg font-bold">Xác nhận đặt lại ứng dụng</h3>
             </div>
             
-            <p className="text-slate-650 text-sm leading-relaxed mb-1 font-semibold">
+            <p className="text-slate-700 dark:text-slate-200 text-sm leading-relaxed mb-1 font-semibold">
               Bạn có muốn khôi phục lại dữ liệu mẫu mặc định không?
             </p>
-            <p className="text-slate-400 text-xs leading-relaxed mb-6">
+            <p className="text-slate-400 dark:text-slate-400 text-xs leading-relaxed mb-6">
               Toàn bộ học phần của bạn tự soạn hoặc tạo bằng trí tuệ nhân tạo (AI) sẽ bị xóa sạch để đưa ứng dụng về trạng thái ban đầu của Thủ Khoa.
             </p>
 
@@ -1172,7 +1214,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowResetConfirm(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-250 rounded-xl transition cursor-pointer"
+                className="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl transition cursor-pointer"
               >
                 Hủy bỏ
               </button>

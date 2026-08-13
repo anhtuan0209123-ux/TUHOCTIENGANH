@@ -624,7 +624,7 @@ export const QuickBrainGamesModal: React.FC<QuickBrainGamesModalProps> = ({
       onClick={onClose}
     >
       <div 
-        className="bg-white w-[95vw] max-w-2xl h-[90vh] max-h-[850px] rounded-2xl sm:rounded-3xl border border-slate-200 shadow-2xl flex flex-col overflow-hidden animate-scale-up"
+        className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 w-[95vw] max-w-2xl h-[90vh] max-h-[850px] rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden animate-scale-up transition-colors"
         onClick={e => e.stopPropagation()}
       >
         {/* HEADER BAR */}
@@ -682,7 +682,7 @@ export const QuickBrainGamesModal: React.FC<QuickBrainGamesModalProps> = ({
         </div>
 
         {/* MODAL BODY WITH SAFE AREA BOTTOM PADDING & HIDDEN SCROLLBAR */}
-        <div className="flex-1 bg-slate-50/70 p-3 sm:p-6 overflow-y-auto no-scrollbar relative pb-8 sm:pb-6">
+        <div className="flex-1 bg-slate-50/70 dark:bg-slate-950/70 p-3 sm:p-6 overflow-y-auto no-scrollbar relative pb-8 sm:pb-6">
 
 
           {/* Floating Toast Notification */}
@@ -699,13 +699,13 @@ export const QuickBrainGamesModal: React.FC<QuickBrainGamesModalProps> = ({
           {!activeGame && (
             <div className="max-w-3xl mx-auto py-6 sm:py-10 space-y-8 animate-fade-in">
               <div className="text-center space-y-2">
-                <span className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+                <span className="inline-flex items-center gap-1.5 bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-amber-200/50 dark:border-amber-800/40">
                   <Sparkles size={14} /> Bộ 3 Mini-game Phản Xạ AI
                 </span>
-                <h3 className="text-2xl sm:text-3xl font-black text-slate-850 tracking-tight">
+                <h3 className="text-2xl sm:text-3xl font-black text-slate-850 dark:text-white tracking-tight">
                   Tăng tốc trí nhớ & Phản xạ ngôn ngữ
                 </h3>
-                <p className="text-slate-500 text-xs sm:text-sm max-w-lg mx-auto">
+                <p className="text-slate-500 dark:text-slate-300 text-xs sm:text-sm max-w-lg mx-auto">
                   Thử thách phản xạ nhanh, suy luận ngữ cảnh từ gợi ý Gemini AI và chinh phục các mức điểm thưởng XP hấp dẫn!
                 </p>
               </div>
@@ -715,29 +715,29 @@ export const QuickBrainGamesModal: React.FC<QuickBrainGamesModalProps> = ({
                 {/* GAME 1 CARD */}
                 <div
                   onClick={() => setActiveGame('true_false')}
-                  className="group relative bg-white p-6 rounded-3xl border-2 border-slate-200 hover:border-amber-500 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden"
+                  className="group relative bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-700/80 hover:border-amber-500 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden"
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                      <div className="p-3 bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 rounded-2xl group-hover:bg-amber-500 group-hover:text-white transition-colors">
                         <Zap size={24} />
                       </div>
-                      <span className="text-[10px] font-black uppercase bg-amber-100 text-amber-800 px-2 py-0.5 rounded-lg">
+                      <span className="text-[10px] font-black uppercase bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-lg">
                         Speed 4s
                       </span>
                     </div>
 
                     <div>
-                      <h4 className="text-base font-extrabold text-slate-850 group-hover:text-amber-600 transition-colors">
+                      <h4 className="text-base font-extrabold text-slate-850 dark:text-slate-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
                         Đúng Hay Sai Chớp Nhoáng ⚡
                       </h4>
-                      <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
                         Phản xạ 4 giây/câu! Quyết định Thuật ngữ & Định nghĩa ghép ĐÚNG hay SAI. Chuỗi đúng 5 câu x2 điểm!
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-extrabold text-amber-600">
+                  <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between text-xs font-extrabold text-amber-600 dark:text-amber-400">
                     <span>Thách thức ngay →</span>
                     <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </div>
@@ -746,29 +746,29 @@ export const QuickBrainGamesModal: React.FC<QuickBrainGamesModalProps> = ({
                 {/* GAME 2 CARD */}
                 <div
                   onClick={() => setActiveGame('word_scramble')}
-                  className="group relative bg-white p-6 rounded-3xl border-2 border-slate-200 hover:border-indigo-600 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden"
+                  className="group relative bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-700/80 hover:border-indigo-600 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden"
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                      <div className="p-3 bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                         <SortAsc size={24} />
                       </div>
-                      <span className="text-[10px] font-black uppercase bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-lg">
+                      <span className="text-[10px] font-black uppercase bg-indigo-100 dark:bg-indigo-950/80 text-indigo-800 dark:text-indigo-300 px-2 py-0.5 rounded-lg">
                         Scramble
                       </span>
                     </div>
 
                     <div>
-                      <h4 className="text-base font-extrabold text-slate-850 group-hover:text-indigo-600 transition-colors">
+                      <h4 className="text-base font-extrabold text-slate-850 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                         Sắp Xếp Chữ Cái 🔤
                       </h4>
-                      <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
                         Chữ cái xáo trộn cần xếp lại đúng từ gốc. Sử dụng Gợi ý Gemini AI 💡 đục lỗ câu ví dụ khi cần!
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-extrabold text-indigo-600">
+                  <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between text-xs font-extrabold text-indigo-600 dark:text-indigo-400">
                     <span>Xếp chữ ngay →</span>
                     <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </div>
@@ -777,29 +777,29 @@ export const QuickBrainGamesModal: React.FC<QuickBrainGamesModalProps> = ({
                 {/* GAME 3 CARD */}
                 <div
                   onClick={() => setActiveGame('hangman')}
-                  className="group relative bg-white p-6 rounded-3xl border-2 border-slate-200 hover:border-rose-500 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden"
+                  className="group relative bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-700/80 hover:border-rose-500 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden"
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="p-3 bg-rose-100 text-rose-600 rounded-2xl group-hover:bg-rose-500 group-hover:text-white transition-colors">
+                      <div className="p-3 bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 rounded-2xl group-hover:bg-rose-500 group-hover:text-white transition-colors">
                         <Target size={24} />
                       </div>
-                      <span className="text-[10px] font-black uppercase bg-rose-100 text-rose-800 px-2 py-0.5 rounded-lg">
+                      <span className="text-[10px] font-black uppercase bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 px-2 py-0.5 rounded-lg">
                         6 Lives ❤️
                       </span>
                     </div>
 
                     <div>
-                      <h4 className="text-base font-extrabold text-slate-850 group-hover:text-rose-600 transition-colors">
+                      <h4 className="text-base font-extrabold text-slate-850 dark:text-slate-100 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
                         Đoán Chữ Cứu Mạng 🎯
                       </h4>
-                      <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
                         Thử thách Hangman 6 trái tim. Đoán ký tự đúng trước khi hết mạng. Gọi AI Cứu Trợ 🤖 khi nguy cấp!
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-extrabold text-rose-600">
+                  <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between text-xs font-extrabold text-rose-600 dark:text-rose-400">
                     <span>Đoán chữ cứu mạng →</span>
                     <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </div>
@@ -807,7 +807,7 @@ export const QuickBrainGamesModal: React.FC<QuickBrainGamesModalProps> = ({
 
               </div>
 
-              <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center gap-3 text-xs text-indigo-900">
+              <div className="p-4 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl flex items-center gap-3 text-xs text-indigo-900 dark:text-indigo-200">
                 <Flame size={20} className="text-amber-500 shrink-0 animate-bounce" />
                 <span>
                   <strong>AI Sinh Đề & Thử Thách Thông Minh:</strong> Nội dung game được Gemini AI biên soạn các định nghĩa bẫy và câu gợi ý ngữ cảnh độc đáo giúp nâng cao hiệu quả nhớ lâu!

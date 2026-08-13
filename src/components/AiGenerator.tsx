@@ -166,29 +166,29 @@ export const AiGenerator: React.FC<AiGeneratorProps> = ({ onGenerated }) => {
   };
 
   return (
-    <div className="bg-white text-slate-800 rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-xs border border-slate-100">
+    <div className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-xs border border-slate-100 dark:border-slate-800 transition-colors">
       <div className="relative z-10">
         
         {/* Header Title Section */}
         <div className="flex items-center gap-3.5 mb-6">
-          <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-brand shrink-0">
+          <div className="p-3 bg-blue-50 dark:bg-indigo-950/80 border border-blue-100 dark:border-indigo-800/40 rounded-xl text-brand dark:text-indigo-400 shrink-0">
             <Brain size={26} />
           </div>
           <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-brand block">SMART PARSER</span>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 flex items-center gap-2 leading-tight">
+            <span className="text-xs font-bold uppercase tracking-widest text-brand dark:text-indigo-400 block">SMART PARSER</span>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2 leading-tight">
               Bóc Tách & Chuyển Đổi Tài Liệu Thành Flashcard 📄
             </h2>
           </div>
         </div>
 
-        <p className="text-sm text-slate-500 mb-6 leading-relaxed max-w-3xl font-medium">
+        <p className="text-sm text-slate-500 dark:text-slate-300 mb-6 leading-relaxed max-w-3xl font-medium">
           Dán đoạn văn bản, danh sách ghi chú, tài liệu ôn tập hoặc đoạn mã nguồn của bạn. AI Gemini sẽ tự động phân tích và <strong>bảo toàn trọn vẹn cụm thuật ngữ ghép chuyên ngành</strong> (ví dụ: <em>Deep Learning</em>, <em>Phản ứng xà phòng hóa</em>) mà không bao giờ xé lẻ từ.
         </p>
 
         {/* Preset sample note buttons */}
         <div className="mb-6 space-y-2">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+          <span className="text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
             Thử nhanh với mẫu tài liệu có sẵn:
           </span>
           <div className="flex flex-wrap gap-2">
@@ -201,9 +201,9 @@ export const AiGenerator: React.FC<AiGeneratorProps> = ({ onGenerated }) => {
                   setCustomTitle(ex.title.replace(/^[^\w\s\u00C0-\u1EF9]+/, '').trim());
                   setErrorMsg(null);
                 }}
-                className="px-3.5 py-2 bg-slate-50 hover:bg-blue-50/70 border border-slate-200/80 hover:border-brand/40 rounded-xl text-xs font-bold text-slate-700 hover:text-brand transition cursor-pointer flex items-center gap-1.5"
+                className="px-3.5 py-2 bg-slate-50 dark:bg-slate-800/80 hover:bg-blue-50/70 dark:hover:bg-slate-700/80 border border-slate-200/80 dark:border-slate-700 hover:border-brand/40 text-slate-700 dark:text-slate-200 hover:text-brand dark:hover:text-indigo-400 transition cursor-pointer flex items-center gap-1.5"
               >
-                <ClipboardList size={14} className="text-brand" />
+                <ClipboardList size={14} className="text-brand dark:text-indigo-400" />
                 <span>{ex.title}</span>
               </button>
             ))}
@@ -212,13 +212,13 @@ export const AiGenerator: React.FC<AiGeneratorProps> = ({ onGenerated }) => {
 
         {/* LOADING BOX */}
         {isLoading ? (
-          <div className="py-12 flex flex-col items-center justify-center min-h-[250px] bg-blue-50/30 rounded-2xl border border-blue-100/60 my-6">
-            <Loader2 className="w-10 h-10 text-brand animate-spin mb-4" />
+          <div className="py-12 flex flex-col items-center justify-center min-h-[250px] bg-blue-50/30 dark:bg-slate-800/40 rounded-2xl border border-blue-100/60 dark:border-slate-700/60 my-6">
+            <Loader2 className="w-10 h-10 text-brand dark:text-indigo-400 animate-spin mb-4" />
             <div className="text-center space-y-2 animate-fade-in px-4">
-              <p className="text-sm font-black text-slate-900 uppercase tracking-wider">
+              <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
                 {LOADING_STEPS[loadingStepIdx]}
               </p>
-              <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
                 Gemini đang rà soát từng dòng tài liệu để trích xuất đầy đủ thuật ngữ và tạo bộ thẻ Flashcard cho bạn.
               </p>
             </div>
@@ -227,7 +227,7 @@ export const AiGenerator: React.FC<AiGeneratorProps> = ({ onGenerated }) => {
           <form onSubmit={handleBulkSubmit} className="space-y-6">
             {/* Custom title input */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
                 Tên học phần (Tùy chọn)
               </label>
               <input
@@ -235,18 +235,18 @@ export const AiGenerator: React.FC<AiGeneratorProps> = ({ onGenerated }) => {
                 placeholder="VD: Từ vựng IELTS Bài đọc Reading / Ghi chú React Hooks..."
                 value={customTitle}
                 onChange={(e) => setCustomTitle(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-brand focus:ring-4 focus:ring-brand/5 outline-none text-slate-900 font-bold text-sm"
+                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-brand focus:ring-4 focus:ring-brand/5 outline-none text-slate-900 dark:text-white font-bold text-sm placeholder-slate-400 dark:placeholder-slate-500"
               />
             </div>
 
             {/* Document paste area */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Dán tài liệu nguồn / Danh sách ghi chú của bạn
                 </label>
                 {parsedCards.length > 0 && (
-                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100 flex items-center gap-1">
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-md border border-emerald-100 dark:border-emerald-900/50 flex items-center gap-1">
                     <Check size={12} /> Nhận diện nhanh được {parsedCards.length} dòng
                   </span>
                 )}
@@ -256,13 +256,13 @@ export const AiGenerator: React.FC<AiGeneratorProps> = ({ onGenerated }) => {
                 value={bulkText}
                 onChange={(e) => setBulkText(e.target.value)}
                 placeholder={`Dán nội dung tài liệu của bạn vào đây...\n\nVí dụ:\n- React: useState (quản lý state), useEffect (xử lý side effect).\n- Hóa học: Phản ứng xà phòng hóa, Cân bằng hóa học, Liên kết cộng hóa trị.\n- Hoặc bài báo, đoạn văn bản đọc bất kỳ...`}
-                className="w-full p-4 bg-white border border-slate-200 rounded-xl focus:border-brand focus:ring-4 focus:ring-brand/5 outline-none text-slate-900 placeholder-slate-400 font-medium text-sm leading-relaxed transition-all resize-none shadow-2xs"
+                className="w-full p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-brand focus:ring-4 focus:ring-brand/5 outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-medium text-sm leading-relaxed transition-all resize-none shadow-2xs"
               />
             </div>
 
             {/* Error message display */}
             {errorMsg && (
-              <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm flex items-start gap-2.5">
+              <div className="p-4 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 rounded-xl text-sm flex items-start gap-2.5">
                 <AlertCircle size={16} className="shrink-0 mt-0.5" />
                 <div>
                   <h4 className="font-bold">Lỗi bóc tách tài liệu</h4>
@@ -272,8 +272,8 @@ export const AiGenerator: React.FC<AiGeneratorProps> = ({ onGenerated }) => {
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
-              <div className="text-xs font-bold text-slate-400">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="text-xs font-bold text-slate-400 dark:text-slate-500">
                 {bulkText.trim() ? `${bulkText.trim().length} ký tự` : 'Sẵn sàng bóc tách'}
               </div>
 
@@ -282,7 +282,7 @@ export const AiGenerator: React.FC<AiGeneratorProps> = ({ onGenerated }) => {
                   <button
                     type="button"
                     onClick={handleInstantLocalCreate}
-                    className="px-5 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+                    className="px-5 py-3.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
                   >
                     <FileText size={16} />
                     <span>Tạo nhanh trực tiếp ({parsedCards.length} thẻ)</span>
@@ -295,7 +295,7 @@ export const AiGenerator: React.FC<AiGeneratorProps> = ({ onGenerated }) => {
                   className={`px-7 py-3.5 rounded-xl font-extrabold text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm ${
                     bulkText.trim() && !isLoading
                       ? 'bg-brand hover:bg-brand-hover text-white shadow-blue-500/20'
-                      : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                      : 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700/60 cursor-not-allowed'
                   }`}
                 >
                   <Sparkles size={16} className="fill-current" />

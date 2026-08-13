@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StudySet, ReviewLog } from '../types';
 import { Plus, Trash2, Calendar, ClipboardCheck, MessageSquare, AlertCircle, Sparkles } from 'lucide-react';
+import { getTodayDateString } from '../utils/analytics';
 
 interface ReviewLogPanelProps {
   set: StudySet;
@@ -12,7 +13,7 @@ export function ReviewLogPanel({ set, onUpdateLogs }: ReviewLogPanelProps) {
   
   // Form states
   const [showForm, setShowForm] = useState(false);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getTodayDateString());
   const [correctCount, setCorrectCount] = useState<number>(set.cards.length);
   const [totalCount, setTotalCount] = useState<number>(set.cards.length);
   const [note, setNote] = useState('');

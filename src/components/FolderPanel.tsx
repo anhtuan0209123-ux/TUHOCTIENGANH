@@ -193,7 +193,7 @@ export function FolderPanel({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <button
               onClick={() => setSelectedFolderId(null)}
-              className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-brand transition-colors cursor-pointer"
+              className="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-brand dark:hover:text-indigo-400 transition-colors cursor-pointer"
             >
               <ArrowLeft size={16} />
               <span>Quay lại danh sách thư mục</span>
@@ -206,13 +206,13 @@ export function FolderPanel({
                   setEditFolderDesc(selectedFolder.description);
                   setShowEditModal(selectedFolder);
                 }}
-                className="flex-1 sm:flex-initial p-2 px-3 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-brand rounded-lg transition-all flex items-center justify-center gap-1.5 text-xs font-bold cursor-pointer"
+                className="flex-1 sm:flex-initial p-2 px-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-brand dark:hover:text-indigo-400 rounded-lg transition-all flex items-center justify-center gap-1.5 text-xs font-bold cursor-pointer"
               >
                 <Edit3 size={14} /> Sửa thư mục
               </button>
               <button
                 onClick={(e) => handleDeleteFolderClick(selectedFolder, e)}
-                className="flex-1 sm:flex-initial p-2 px-3 border border-rose-100 bg-white hover:bg-rose-50 text-rose-600 rounded-lg transition-all flex items-center justify-center gap-1.5 text-xs font-bold cursor-pointer"
+                className="flex-1 sm:flex-initial p-2 px-3 border border-rose-100 dark:border-rose-900/50 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-lg transition-all flex items-center justify-center gap-1.5 text-xs font-bold cursor-pointer"
               >
                 <Trash2 size={14} /> Xóa thư mục
               </button>
@@ -220,24 +220,24 @@ export function FolderPanel({
           </div>
 
           {/* Folder Information Card */}
-          <div className="bg-gradient-to-r from-blue-50/50 via-slate-50 to-slate-50 p-6 sm:p-8 rounded-2xl border border-slate-100 shadow-xs relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-6 opacity-5 text-brand pointer-events-none">
+          <div className="bg-gradient-to-r from-blue-50/50 via-slate-50 to-slate-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800/80 p-6 sm:p-8 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs relative overflow-hidden transition-colors">
+            <div className="absolute top-0 right-0 p-6 opacity-5 dark:opacity-10 text-brand dark:text-indigo-400 pointer-events-none">
               <FolderOpen size={96} />
             </div>
             <div className="relative z-10 space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-brand bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider">
+                <span className="text-xs font-bold text-brand dark:text-indigo-300 bg-blue-50 dark:bg-indigo-950/80 px-3 py-1 rounded-full uppercase tracking-wider border border-blue-100/50 dark:border-indigo-800/40">
                   Thư mục học tập
                 </span>
-                <span className="text-xs font-semibold text-slate-400 flex items-center gap-1">
+                <span className="text-xs font-semibold text-slate-400 dark:text-slate-400 flex items-center gap-1">
                   <Calendar size={12} />
                   {formatDate(selectedFolder.createdAt)}
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-tight">
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
                 {selectedFolder.name}
               </h1>
-              <p className="text-sm sm:text-base text-slate-500 max-w-3xl leading-relaxed">
+              <p className="text-sm sm:text-base text-slate-500 dark:text-slate-300 max-w-3xl leading-relaxed">
                 {selectedFolder.description || 'Thư mục này chưa có mô tả nào.'}
               </p>
             </div>
@@ -246,8 +246,8 @@ export function FolderPanel({
           {/* Folder Contents Section */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                <BookOpen size={14} className="text-brand" />
+              <h3 className="text-sm font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-400 flex items-center gap-1.5">
+                <BookOpen size={14} className="text-brand dark:text-indigo-400" />
                 <span>Các học phần trong thư mục ({currentFolderSets.length})</span>
               </h3>
 
@@ -266,35 +266,35 @@ export function FolderPanel({
                   <div
                     key={set.id}
                     onClick={() => onSelectSet(set)}
-                    className="bg-white border border-slate-200 hover:border-brand hover:shadow-xs rounded-xl p-5 transition duration-200 cursor-pointer flex flex-col justify-between relative group"
+                    className="bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 hover:border-brand dark:hover:border-indigo-500 hover:shadow-xs rounded-xl p-5 transition duration-200 cursor-pointer flex flex-col justify-between relative group"
                   >
                     <div>
                       <div className="flex items-start justify-between gap-4">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md">
                           {set.cards.length} thuật ngữ
                         </span>
                         
                         {/* Remove from folder action */}
                         <button
                           onClick={(e) => handleRemoveSetFromFolderClick(selectedFolder.id, set.id, set.title, e)}
-                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                          className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-md transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
                           title="Bỏ khỏi thư mục"
                         >
                           <FolderMinus size={15} />
                         </button>
                       </div>
 
-                      <h4 className="font-bold text-slate-850 mt-3 text-sm tracking-tight line-clamp-1">
+                      <h4 className="font-bold text-slate-900 dark:text-slate-100 mt-3 text-sm tracking-tight line-clamp-1">
                         {set.title}
                       </h4>
-                      <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-slate-400 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
                         {set.description || 'Không có mô tả.'}
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-slate-50 mt-4 pt-3 text-[10px] text-slate-400 font-bold">
+                    <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-700/80 mt-4 pt-3 text-[10px] text-slate-400 dark:text-slate-400 font-bold">
                       <span>{set.reviewLogs ? `Đã ôn ${set.reviewLogs.length} lần` : 'Chưa ôn lần nào'}</span>
-                      <span className="text-brand flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
+                      <span className="text-brand dark:text-indigo-400 flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
                         Học ngay <ChevronRight size={12} />
                       </span>
                     </div>
@@ -302,10 +302,10 @@ export function FolderPanel({
                 ))}
               </div>
             ) : (
-              <div className="p-12 text-center bg-white rounded-xl border border-slate-100 py-16">
-                <FolderOpen size={44} className="mx-auto text-slate-300 mb-3 animate-pulse" />
-                <h4 className="font-bold text-slate-800 text-sm">Thư mục trống</h4>
-                <p className="text-slate-400 text-xs mt-1 max-w-sm mx-auto leading-relaxed">
+              <div className="p-12 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 py-16">
+                <FolderOpen size={44} className="mx-auto text-slate-300 dark:text-slate-600 mb-3 animate-pulse" />
+                <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm">Thư mục trống</h4>
+                <p className="text-slate-400 dark:text-slate-400 text-xs mt-1 max-w-sm mx-auto leading-relaxed">
                   Hãy thêm các học phần ghi nhớ vào thư mục này để phân loại các phần học của bạn một cách có hệ thống.
                 </p>
                 <button
@@ -323,11 +323,11 @@ export function FolderPanel({
         <div className="space-y-6 animate-fade-in">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <FolderIcon size={20} className="text-brand" />
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <FolderIcon size={20} className="text-brand dark:text-indigo-400" />
                 <span>Thư mục phân loại học tập</span>
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
                 Tạo các thư mục chuyên môn để phân chia học tập (ví dụ: "Tiếng Anh Giao Tiếp", "Lập Trình Web", "Từ Vựng Đại Học").
               </p>
             </div>
@@ -356,39 +356,39 @@ export function FolderPanel({
                   <div
                     key={folder.id}
                     onClick={() => setSelectedFolderId(folder.id)}
-                    className="group bg-white border border-slate-200 hover:border-brand hover:shadow-xs rounded-xl p-5 transition duration-200 cursor-pointer flex flex-col justify-between"
+                    className="group bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 hover:border-brand dark:hover:border-indigo-500 hover:shadow-xs rounded-2xl p-5 transition duration-200 cursor-pointer flex flex-col justify-between"
                   >
                     <div>
                       <div className="flex items-start justify-between gap-4">
-                        <div className="p-2.5 bg-blue-50 text-brand rounded-lg group-hover:scale-105 transition-transform">
-                          <FolderIcon size={18} fill="currentColor" className="text-brand/20" />
+                        <div className="p-2.5 bg-blue-50 dark:bg-indigo-950/80 text-brand dark:text-indigo-400 rounded-lg group-hover:scale-105 transition-transform border border-blue-100/50 dark:border-indigo-800/40">
+                          <FolderIcon size={18} fill="currentColor" className="text-brand/20 dark:text-indigo-400/20" />
                         </div>
                         <div className="flex items-center gap-2">
                           <button
                             onClick={(e) => handleDeleteFolderClick(folder, e)}
-                            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+                            className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-md transition-all cursor-pointer opacity-0 group-hover:opacity-100"
                             title="Xóa thư mục"
                           >
                             <Trash2 size={13} />
                           </button>
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md">
                             {folder.setIds.length} học phần
                           </span>
                         </div>
                       </div>
 
-                      <h3 className="font-bold text-slate-850 mt-4 text-base tracking-tight leading-snug group-hover:text-brand transition-colors line-clamp-1">
+                      <h3 className="font-bold text-slate-900 dark:text-slate-100 mt-4 text-base tracking-tight leading-snug group-hover:text-brand dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
                         {folder.name}
                       </h3>
                       
-                      <p className="text-xs text-slate-450 mt-1 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-slate-400 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
                         {folder.description || 'Không có mô tả cho thư mục này.'}
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-slate-50 mt-5 pt-3.5 text-[10px] text-slate-400 font-bold">
+                    <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-700/80 mt-5 pt-3.5 text-[10px] text-slate-400 dark:text-slate-400 font-bold">
                       <span>Tổng số: {totalCards} thuật ngữ</span>
-                      <span className="text-brand flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
+                      <span className="text-brand dark:text-indigo-400 flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
                         Mở thư mục <ChevronRight size={12} />
                       </span>
                     </div>
@@ -397,13 +397,13 @@ export function FolderPanel({
               })}
             </div>
           ) : (
-            <div className="p-12 text-center bg-white rounded-xl border border-slate-100 py-16 space-y-3">
-              <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-400">
+            <div className="p-12 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 py-16 space-y-3">
+              <div className="w-12 h-12 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto text-slate-400 dark:text-slate-300">
                 <FolderIcon size={20} />
               </div>
               <div className="space-y-1">
-                <h4 className="font-bold text-sm text-slate-800">Chưa có thư mục phân loại nào</h4>
-                <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">Chưa có thư mục phân loại nào</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
                   Tạo các thư mục để tổ chức, sắp xếp các phần học khoa học hơn theo chủ đề hoặc lịch trình thi cử.
                 </p>
               </div>
@@ -423,57 +423,57 @@ export function FolderPanel({
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
           <form 
             onSubmit={handleCreateFolder} 
-            className="bg-white w-full max-w-md rounded-2xl border border-slate-100 p-6 shadow-xl animate-scale-up space-y-4"
+            className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl border border-slate-100 dark:border-slate-700 p-6 shadow-xl animate-scale-up space-y-4 text-slate-900 dark:text-slate-100 transition-colors"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <span className="font-bold text-base text-slate-800 flex items-center gap-1.5">
-                <FolderPlus size={18} className="text-brand" />
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
+              <span className="font-bold text-base text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                <FolderPlus size={18} className="text-brand dark:text-indigo-400" />
                 Tạo thư mục mới
               </span>
               <button 
                 type="button" 
                 onClick={() => setShowCreateModal(false)} 
-                className="text-slate-400 hover:text-slate-600 transition"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
               >
                 <X size={18} />
               </button>
             </div>
 
             {createError && (
-              <div className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-100 p-3 rounded-lg">
+              <div className="text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 border border-rose-100 dark:border-rose-900/50 p-3 rounded-lg">
                 {createError}
               </div>
             )}
 
             <div className="space-y-4">
               <div className="space-y-1">
-                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Tên thư mục *</label>
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500 dark:text-slate-400">Tên thư mục *</label>
                 <input
                   type="text"
                   placeholder="Ví dụ: Từ Vựng IELTS, Lập Trình React..."
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 px-3 text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
                   required
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Mô tả thư mục (Không bắt buộc)</label>
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500 dark:text-slate-400">Mô tả thư mục (Không bắt buộc)</label>
                 <textarea
                   placeholder="Ghi chú nhanh mục tiêu, thời hạn học hoặc nội dung tổng quát của thư mục này..."
                   value={newFolderDesc}
                   onChange={(e) => setNewFolderDesc(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 px-3 text-xs font-medium text-slate-700 h-20 resize-none focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 px-3 text-xs font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 h-20 resize-none focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-50">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer"
+                className="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition cursor-pointer"
               >
                 Hủy bỏ
               </button>
@@ -493,55 +493,55 @@ export function FolderPanel({
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
           <form 
             onSubmit={handleEditFolderSubmit} 
-            className="bg-white w-full max-w-md rounded-2xl border border-slate-100 p-6 shadow-xl animate-scale-up space-y-4"
+            className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl border border-slate-100 dark:border-slate-700 p-6 shadow-xl animate-scale-up space-y-4 text-slate-900 dark:text-slate-100 transition-colors"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <span className="font-bold text-base text-slate-800 flex items-center gap-1.5">
-                <Edit3 size={18} className="text-brand" />
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
+              <span className="font-bold text-base text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                <Edit3 size={18} className="text-brand dark:text-indigo-400" />
                 Sửa thông tin thư mục
               </span>
               <button 
                 type="button" 
                 onClick={() => setShowEditModal(null)} 
-                className="text-slate-400 hover:text-slate-600 transition"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
               >
                 <X size={18} />
               </button>
             </div>
 
             {editError && (
-              <div className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-100 p-3 rounded-lg">
+              <div className="text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 border border-rose-100 dark:border-rose-900/50 p-3 rounded-lg">
                 {editError}
               </div>
             )}
 
             <div className="space-y-4">
               <div className="space-y-1">
-                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Tên thư mục *</label>
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500 dark:text-slate-400">Tên thư mục *</label>
                 <input
                   type="text"
                   value={editFolderName}
                   onChange={(e) => setEditFolderName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 px-3 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
                   required
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Mô tả thư mục</label>
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500 dark:text-slate-400">Mô tả thư mục</label>
                 <textarea
                   value={editFolderDesc}
                   onChange={(e) => setEditFolderDesc(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 px-3 text-xs font-medium text-slate-700 h-20 resize-none focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 px-3 text-xs font-medium text-slate-800 dark:text-slate-100 h-20 resize-none focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-50">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
               <button
                 type="button"
                 onClick={() => setShowEditModal(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer"
+                className="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition cursor-pointer"
               >
                 Hủy bỏ
               </button>
@@ -559,19 +559,19 @@ export function FolderPanel({
       {/* 5. MODAL: ADD STUDY SETS TO FOLDER */}
       {showAddSetsModal && selectedFolder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white w-full max-w-lg rounded-2xl border border-slate-100 p-6 shadow-xl animate-scale-up space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-2xl border border-slate-100 dark:border-slate-700 p-6 shadow-xl animate-scale-up space-y-4 text-slate-900 dark:text-slate-100 transition-colors">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
               <div>
-                <span className="font-bold text-base text-slate-800 flex items-center gap-1.5">
-                  <PlusCircle size={18} className="text-brand" />
+                <span className="font-bold text-base text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                  <PlusCircle size={18} className="text-brand dark:text-indigo-400" />
                   Thêm học phần vào thư mục
                 </span>
-                <p className="text-[10px] text-slate-400 mt-0.5">Thư mục: <span className="font-extrabold text-slate-600">{selectedFolder.name}</span></p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-0.5">Thư mục: <span className="font-extrabold text-slate-600 dark:text-slate-200">{selectedFolder.name}</span></p>
               </div>
               <button 
                 type="button" 
                 onClick={() => setShowAddSetsModal(false)} 
-                className="text-slate-400 hover:text-slate-600 transition"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
               >
                 <X size={18} />
               </button>
@@ -582,32 +582,32 @@ export function FolderPanel({
                 setsNotInFolder.map((set) => (
                   <div 
                     key={set.id}
-                    className="flex items-center justify-between p-3 bg-slate-50/50 hover:bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-xl transition"
+                    className="flex items-center justify-between p-3 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-xl transition"
                   >
                     <div>
-                      <h4 className="text-xs font-bold text-slate-800">{set.title}</h4>
-                      <p className="text-[10px] text-slate-400 mt-0.5 font-medium">{set.cards.length} thuật ngữ &bull; {set.description || 'Không có mô tả.'}</p>
+                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">{set.title}</h4>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-0.5 font-medium">{set.cards.length} thuật ngữ &bull; {set.description || 'Không có mô tả.'}</p>
                     </div>
                     <button
                       onClick={() => handleAddSetToFolder(selectedFolder.id, set.id)}
-                      className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-brand text-[10px] font-extrabold rounded-lg flex items-center gap-1 transition cursor-pointer"
+                      className="px-2.5 py-1.5 bg-blue-50 dark:bg-indigo-950/80 hover:bg-blue-100 dark:hover:bg-indigo-900 text-brand dark:text-indigo-300 text-[10px] font-extrabold rounded-lg flex items-center gap-1 transition cursor-pointer"
                     >
                       <Plus size={11} /> Thêm
                     </button>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-slate-400 text-xs">
+                <div className="text-center py-8 text-slate-400 dark:text-slate-400 text-xs">
                   Tất cả các học phần hiện có đã được thêm vào thư mục này.
                 </div>
               )}
             </div>
 
-            <div className="flex justify-end pt-3 border-t border-slate-100">
+            <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-slate-700">
               <button
                 type="button"
                 onClick={() => setShowAddSetsModal(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer"
+                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition cursor-pointer"
               >
                 Đóng lại
               </button>
@@ -619,27 +619,27 @@ export function FolderPanel({
       {/* 6. MODAL: CONFIRM DELETE FOLDER */}
       {folderToDelete && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl border border-slate-100 p-6 shadow-xl animate-scale-up space-y-4">
-            <div className="flex items-center gap-3 text-rose-600">
-              <div className="p-3 bg-rose-50 rounded-full">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl border border-slate-100 dark:border-slate-700 p-6 shadow-xl animate-scale-up space-y-4 text-slate-900 dark:text-slate-100 transition-colors">
+            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/60 rounded-full">
                 <Trash2 size={24} />
               </div>
               <div>
-                <h3 className="font-extrabold text-slate-800 text-base">Xóa thư mục học tập</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Hành động này không thể hoàn tác</p>
+                <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-base">Xóa thư mục học tập</h3>
+                <p className="text-xs text-slate-400 dark:text-slate-400 mt-0.5">Hành động này không thể hoàn tác</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Bạn có chắc chắn muốn xóa thư mục <span className="font-extrabold text-slate-800">"{folderToDelete.name}"</span>? 
-              Các học phần từ vựng bên trong thư mục này <span className="font-bold text-slate-800">sẽ không</span> bị xóa khỏi tài khoản của bạn.
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Bạn có chắc chắn muốn xóa thư mục <span className="font-extrabold text-slate-800 dark:text-slate-100">"{folderToDelete.name}"</span>? 
+              Các học phần từ vựng bên trong thư mục này <span className="font-bold text-slate-800 dark:text-slate-100">sẽ không</span> bị xóa khỏi tài khoản của bạn.
             </p>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-700">
               <button
                 type="button"
                 onClick={() => setFolderToDelete(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer"
+                className="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition cursor-pointer"
               >
                 Hủy bỏ
               </button>
@@ -658,27 +658,27 @@ export function FolderPanel({
       {/* 7. MODAL: CONFIRM REMOVE STUDY SET FROM FOLDER */}
       {setToRemove && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl border border-slate-100 p-6 shadow-xl animate-scale-up space-y-4">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl border border-slate-100 dark:border-slate-700 p-6 shadow-xl animate-scale-up space-y-4 text-slate-900 dark:text-slate-100 transition-colors">
             <div className="flex items-center gap-3 text-amber-500">
-              <div className="p-3 bg-amber-50 rounded-full">
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/60 rounded-full">
                 <FolderMinus size={24} />
               </div>
               <div>
-                <h3 className="font-extrabold text-slate-800 text-base">Bỏ học phần khỏi thư mục</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Thay đổi phân loại thư mục</p>
+                <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-base">Bỏ học phần khỏi thư mục</h3>
+                <p className="text-xs text-slate-400 dark:text-slate-400 mt-0.5">Thay đổi phân loại thư mục</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Bạn có chắc chắn muốn loại bỏ học phần <span className="font-extrabold text-slate-800">"{setToRemove.setTitle}"</span> ra khỏi thư mục này? 
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Bạn có chắc chắn muốn loại bỏ học phần <span className="font-extrabold text-slate-800 dark:text-slate-100">"{setToRemove.setTitle}"</span> ra khỏi thư mục này? 
               Học phần này vẫn sẽ xuất hiện đầy đủ trong danh sách bài học của bạn.
             </p>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-700">
               <button
                 type="button"
                 onClick={() => setSetToRemove(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer"
+                className="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition cursor-pointer"
               >
                 Hủy bỏ
               </button>
