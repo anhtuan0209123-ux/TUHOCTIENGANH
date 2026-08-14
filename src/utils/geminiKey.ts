@@ -1,8 +1,42 @@
 export const GEMINI_KEY_STORAGE = 'gemini_api_key';
 
 export function getStoredGeminiKey(): string {
-  if (typeof window === 'undefined') return '';
-  return localStorage.getItem(GEMINI_KEY_STORAGE)?.trim() || localStorage.getItem('GEMINI_API_KEY')?.trim() || '';
+  // 1. Check localStorage if in browser environment
+  if (typeof window !== 'undefined') {
+    const fromStorage = localStorage.getItem(GEMINI_KEY_STORAGE)?.trim() || localStorage.getItem('GEMINI_API_KEY')?.trim();
+    if (fromStorage) return fromStorage;
+  }
+
+  // 2. Check Vite environment variables (Vercel Vite build or local .env)
+  try {
+    const metaEnv = (import.meta as any)?.env;
+    if (metaEnv) {
+      if (typeof metaEnv.VITE_GEMINI_API_KEY === 'string' && metaEnv.VITE_GEMINI_API_KEY.trim()) {
+        return metaEnv.VITE_GEMINI_API_KEY.trim();
+      }
+      if (typeof metaEnv.GEMINI_API_KEY === 'string' && metaEnv.GEMINI_API_KEY.trim()) {
+        return metaEnv.GEMINI_API_KEY.trim();
+      }
+    }
+  } catch {
+    // Ignore environment access errors in restricted contexts
+  }
+
+  // 3. Check process.env (Node runtime or bundler polyfills)
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      if (typeof process.env.GEMINI_API_KEY === 'string' && process.env.GEMINI_API_KEY.trim()) {
+        return process.env.GEMINI_API_KEY.trim();
+      }
+      if (typeof process.env.VITE_GEMINI_API_KEY === 'string' && process.env.VITE_GEMINI_API_KEY.trim()) {
+        return process.env.VITE_GEMINI_API_KEY.trim();
+      }
+    }
+  } catch {
+    // Ignore process access errors
+  }
+
+  return '';
 }
 
 export function setStoredGeminiKey(key: string): void {
