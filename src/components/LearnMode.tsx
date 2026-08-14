@@ -904,6 +904,7 @@ export const LearnMode: React.FC<LearnModeProps> = ({ set, onBack, onUpdateSet }
                   onChange={(e) => { setTypedAnswer(e.target.value); setSubmitError(''); }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
+                      if (e.nativeEvent.isComposing || (e as any).isComposing) return;
                       e.preventDefault();
                       e.stopPropagation();
                       if (!isSubmitted) {

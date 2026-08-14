@@ -47,27 +47,27 @@ export function ApiKeyHeaderBar() {
   };
 
   return (
-    <div className="w-full bg-slate-900 text-white border-b border-slate-800 px-4 py-2 text-sm shadow-inner">
+    <div className="w-full bg-slate-100/80 border-b border-slate-200 px-4 py-2 text-sm">
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2">
         {/* Left branding & status indicator */}
         <div className="flex items-center gap-2 text-xs md:text-sm font-medium">
-          <div className="p-1 bg-amber-500/20 text-amber-400 rounded-lg flex items-center justify-center">
+          <div className="p-1 bg-amber-100 text-amber-700 rounded-lg flex items-center justify-center">
             <Key size={15} />
           </div>
-          <span className="font-semibold text-slate-200">GEMINI_API_KEY:</span>
+          <span className="font-semibold text-slate-700">GEMINI_API_KEY:</span>
 
           {savedKey && !isEditing ? (
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                 <Check size={12} />
                 Đã cài đặt
               </span>
-              <span className="text-slate-400 font-mono text-xs hidden sm:inline">
+              <span className="text-slate-500 font-mono text-xs hidden sm:inline">
                 ({savedKey.substring(0, 6)}...{savedKey.slice(-4)})
               </span>
             </div>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
               <AlertTriangle size={12} />
               Chưa lưu Key cá nhân
             </span>
@@ -84,12 +84,12 @@ export function ApiKeyHeaderBar() {
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
                   placeholder="Nhập GEMINI_API_KEY (AIzaSy...)..."
-                  className="w-full bg-slate-800 text-slate-100 placeholder-slate-400 text-xs px-3 py-1.5 pr-8 rounded-lg border border-slate-700 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 font-mono"
+                  className="w-full bg-white text-slate-900 placeholder-slate-400 text-xs px-3 py-1.5 pr-8 rounded-lg border border-slate-300 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 font-mono"
                 />
                 <button
                   type="button"
                   onClick={() => setShowKey(!showKey)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-0.5"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
                   title={showKey ? "Ẩn Key" : "Hiện Key"}
                 >
                   {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -99,7 +99,7 @@ export function ApiKeyHeaderBar() {
               <button
                 type="submit"
                 disabled={!apiKeyInput.trim()}
-                className="inline-flex items-center gap-1 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg transition shadow-sm shrink-0"
+                className="inline-flex items-center gap-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition shadow-xs shrink-0 cursor-pointer"
               >
                 {isSavedNotice ? <Check size={13} /> : <Sparkles size={13} />}
                 {isSavedNotice ? 'Đã lưu!' : 'Lưu Key'}
@@ -109,7 +109,7 @@ export function ApiKeyHeaderBar() {
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="text-xs text-slate-400 hover:text-white px-2 py-1"
+                  className="text-xs text-slate-500 hover:text-slate-800 px-2 py-1"
                 >
                   Hủy
                 </button>
@@ -119,13 +119,13 @@ export function ApiKeyHeaderBar() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsEditing(true)}
-                className="text-xs text-amber-400 hover:text-amber-300 font-medium underline underline-offset-2"
+                className="text-xs text-amber-700 hover:text-amber-800 font-semibold underline underline-offset-2 cursor-pointer"
               >
                 Đổi Key
               </button>
               <button
                 onClick={handleClear}
-                className="p-1 text-slate-400 hover:text-red-400 transition"
+                className="p-1 text-slate-400 hover:text-rose-600 transition cursor-pointer"
                 title="Xóa Key khỏi localStorage"
               >
                 <Trash2 size={13} />
@@ -138,7 +138,7 @@ export function ApiKeyHeaderBar() {
             onClick={() => {
               window.dispatchEvent(new CustomEvent('open-help-center', { detail: 'api-config' }));
             }}
-            className="inline-flex items-center gap-1 text-[11px] text-amber-300 hover:text-amber-200 transition shrink-0 ml-1 border-l border-slate-800 pl-2 cursor-pointer font-semibold"
+            className="inline-flex items-center gap-1 text-[11px] text-amber-700 hover:text-amber-900 transition shrink-0 ml-1 border-l border-slate-300 pl-2 cursor-pointer font-semibold"
             title="Xem video & hướng dẫn cấu hình API Key"
           >
             <HelpCircle size={11} />
@@ -149,7 +149,7 @@ export function ApiKeyHeaderBar() {
             href="https://aistudio.google.com/app/apikey"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-amber-300 transition shrink-0 ml-1 border-l border-slate-800 pl-2"
+            className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-amber-700 transition shrink-0 ml-1 border-l border-slate-300 pl-2 font-medium"
             title="Lấy API Key miễn phí từ Google AI Studio"
           >
             <span>Lấy Key miễn phí</span>
@@ -160,9 +160,9 @@ export function ApiKeyHeaderBar() {
 
       {/* Reminder notification banner if no key is saved */}
       {!savedKey && (
-        <div className="max-w-6xl mx-auto mt-1.5 pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-amber-300/90 font-medium bg-amber-500/10 px-3 py-1 rounded-md border border-amber-500/20">
+        <div className="max-w-6xl mx-auto mt-1.5 pt-1.5 border-t border-slate-200 flex items-center justify-between text-[11px] text-amber-800 font-medium bg-amber-50 px-3 py-1 rounded-md border border-amber-200">
           <div className="flex items-center gap-1.5">
-            <AlertTriangle size={13} className="shrink-0 text-amber-400" />
+            <AlertTriangle size={13} className="shrink-0 text-amber-600" />
             <span>
               <strong>Nhắc nhở:</strong> Nhập <strong>GEMINI_API_KEY</strong> của bạn ở ô trên để sử dụng các tính năng AI (Tạo bài học AI, phân tích từ vựng, dượt bài...). Key sẽ được bảo mật lưu trong localStorage trình duyệt của bạn.
             </span>

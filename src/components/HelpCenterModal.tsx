@@ -77,27 +77,27 @@ export const HelpCenterModal: React.FC<HelpCenterModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-900/40 backdrop-blur-xs animate-fade-in overflow-y-auto">
       <div 
-        className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-5xl my-auto max-h-[92vh] flex flex-col overflow-hidden transition-colors"
+        className="bg-white text-slate-900 rounded-2xl border border-slate-200 shadow-2xl w-full max-w-5xl my-auto max-h-[92vh] flex flex-col overflow-hidden transition-colors"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90 flex items-center justify-between gap-4 sticky top-0 z-20">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between gap-4 sticky top-0 z-20">
           <div className="flex items-center gap-3">
             <div className="bg-brand text-white p-2 rounded-xl flex items-center justify-center shadow-xs">
               <BookOpen size={20} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-extrabold text-lg sm:text-xl text-slate-900 dark:text-white tracking-tight">
+                <h2 className="font-extrabold text-lg sm:text-xl text-slate-900 tracking-tight">
                   Trung Tâm Trợ Giúp & Hướng Dẫn
                 </h2>
-                <span className="px-2 py-0.5 text-[11px] font-bold bg-brand-light dark:bg-blue-950/80 text-brand dark:text-blue-300 rounded-full border border-blue-200/50 dark:border-blue-800/40">
+                <span className="px-2 py-0.5 text-[11px] font-bold bg-brand-light text-brand rounded-full border border-blue-200/50">
                   {userGuideData.version}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium hidden sm:block">
+              <p className="text-xs text-slate-500 font-medium hidden sm:block">
                 Cẩm nang toàn tập phương pháp học thuộc thông minh, kết nối AI & xử lý sự cố
               </p>
             </div>
@@ -105,7 +105,7 @@ export const HelpCenterModal: React.FC<HelpCenterModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
+            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-xl transition cursor-pointer"
             title="Đóng cửa sổ"
           >
             <X size={20} />

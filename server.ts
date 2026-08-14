@@ -401,6 +401,12 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Set UTF-8 encoding header for all API responses
+  app.use("/api", (req, res, next) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    next();
+  });
+
   // API Route: Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
