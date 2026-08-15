@@ -1,37 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { Key, Check, Eye, EyeOff, ExternalLink, AlertTriangle, Trash2, Sparkles, HelpCircle } from 'lucide-react';
-import { getStoredGeminiKey, setStoredGeminiKey } from '../utils/geminiKey';
+import { Key, Check, Eye, EyeOff, ExternalLink, AlertTriangle, Trash2, Sparkles, HelpCircle, Server } from 'lucide-react';
+import { getStoredGeminiKey, setStoredGeminiKey, getGeminiKeySource } from '../utils/geminiKey';
 
 export function ApiKeyHeaderBar() {
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [savedKey, setSavedKey] = useState('');
+  const [keySource, setKeySource] = useState<'user' | 'env' | 'none'>('none');
   const [showKey, setShowKey] = useState(false);
   const [isSavedNotice, setIsSavedNotice] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  useEffect(() => {
+  const refreshKeyState = () => {
     const current = getStoredGeminiKey();
+    const source = getGeminiKeySource();
     setSavedKey(current);
-    setApiKeyInput(current);
+    setKeySource(source);
+    if (!isEditing) {
+      setApiKeyInput(current);
+    }
+  };
 
-    const handleKeyUpdate = (e: Event) => {
-      const customEvent = e as CustomEvent<string>;
-      const val = customEvent.detail || getStoredGeminiKey();
-      setSavedKey(val);
-      setApiKeyInput(val);
+  useEffect(() => {
+    refreshKeyState();
+
+    const handleKeyUpdate = () => {
+      refreshKeyState();
     };
 
     window.addEventListener('gemini-key-updated', handleKeyUpdate);
     return () => {
       window.removeEventListener('gemini-key-updated', handleKeyUpdate);
     };
-  }, []);
+  }, [isEditing]);
 
   const handleSave = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const trimmed = apiKeyInput.trim();
     setStoredGeminiKey(trimmed);
     setSavedKey(trimmed);
+    setKeySource(trimmed ? 'user' : getGeminiKeySource());
     setIsSavedNotice(true);
     setIsEditing(false);
     setTimeout(() => {
@@ -41,13 +48,13 @@ export function ApiKeyHeaderBar() {
 
   const handleClear = () => {
     setStoredGeminiKey('');
-    setSavedKey('');
     setApiKeyInput('');
     setIsEditing(true);
+    refreshKeyState();
   };
 
   return (
-    <div className="w-full bg-slate-100/80 border-b border-slate-200 px-4 py-2 text-sm">
+    <div className="w-full bg-slate-100/90 border-b border-slate-200 px-4 py-2 text-sm">
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2">
         {/* Left branding & status indicator */}
         <div className="flex items-center gap-2 text-xs md:text-sm font-medium">
@@ -60,8 +67,14 @@ export function ApiKeyHeaderBar() {
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                 <Check size={12} />
-                Đã cài đặt
+                {keySource === 'env' ? 'Biến môi trường Vercel (VITE_)' : 'Đã cài đặt'}
               </span>
+              {keySource === 'env' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                  <Server size={11} />
+                  Vercel Env
+                </span>
+              )}
               <span className="text-slate-500 font-mono text-xs hidden sm:inline">
                 ({savedKey.substring(0, 6)}...{savedKey.slice(-4)})
               </span>
@@ -89,7 +102,7 @@ export function ApiKeyHeaderBar() {
                 <button
                   type="button"
                   onClick={() => setShowKey(!showKey)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
                   title={showKey ? "Ẩn Key" : "Hiện Key"}
                 >
                   {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -108,8 +121,11 @@ export function ApiKeyHeaderBar() {
               {savedKey && (
                 <button
                   type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="text-xs text-slate-500 hover:text-slate-800 px-2 py-1"
+                  onClick={() => {
+                    setIsEditing(false);
+                    refreshKeyState();
+                  }}
+                  className="text-xs text-slate-500 hover:text-slate-800 px-2 py-1 cursor-pointer"
                 >
                   Hủy
                 </button>
@@ -118,18 +134,23 @@ export function ApiKeyHeaderBar() {
           ) : (
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setIsEditing(true)}
+                onClick={() => {
+                  setIsEditing(true);
+                  setApiKeyInput(savedKey);
+                }}
                 className="text-xs text-amber-700 hover:text-amber-800 font-semibold underline underline-offset-2 cursor-pointer"
               >
                 Đổi Key
               </button>
-              <button
-                onClick={handleClear}
-                className="p-1 text-slate-400 hover:text-rose-600 transition cursor-pointer"
-                title="Xóa Key khỏi localStorage"
-              >
-                <Trash2 size={13} />
-              </button>
+              {keySource === 'user' && (
+                <button
+                  onClick={handleClear}
+                  className="p-1 text-slate-400 hover:text-rose-600 transition cursor-pointer"
+                  title="Xóa Key cá nhân khỏi localStorage"
+                >
+                  <Trash2 size={13} />
+                </button>
+              )}
             </div>
           )}
 
@@ -164,7 +185,7 @@ export function ApiKeyHeaderBar() {
           <div className="flex items-center gap-1.5">
             <AlertTriangle size={13} className="shrink-0 text-amber-600" />
             <span>
-              <strong>Nhắc nhở:</strong> Nhập <strong>GEMINI_API_KEY</strong> của bạn ở ô trên để sử dụng các tính năng AI (Tạo bài học AI, phân tích từ vựng, dượt bài...). Key sẽ được bảo mật lưu trong localStorage trình duyệt của bạn.
+              <strong>Nhắc nhở:</strong> Nhập <strong>GEMINI_API_KEY</strong> của bạn ở ô trên hoặc cài đặt biến <strong>VITE_GEMINI_API_KEY</strong> trên Vercel để sử dụng các tính năng AI.
             </span>
           </div>
         </div>
@@ -172,3 +193,4 @@ export function ApiKeyHeaderBar() {
     </div>
   );
 }
+

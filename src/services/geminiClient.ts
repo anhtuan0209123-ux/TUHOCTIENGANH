@@ -334,19 +334,68 @@ function getClientGemini(): GoogleGenAI | null {
   });
 }
 
-async function safeGenerateContentClient(
-  ai: GoogleGenAI,
-  params: {
-    contents: string | any;
-    systemInstruction?: string;
-    responseSchema?: any;
-    temperature?: number;
-  }
-): Promise<string> {
-  const modelsToTry = ["gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
-  let lastErr: any = null;
+/**
+ * Danh sách các mô hình Gemini ưu tiên thử nghiệm theo thứ tự Fallback:
+ * 1. gemini-2.5-flash (Nhanh, thông minh, tối ưu cho flashcards & phân tích)
+ * 2. gemini-1.5-flash (Ổn định, tương thích cao mọi tài khoản)
+ * 3. gemini-2.0-flash-lite (Siêu nhẹ, tiết kiệm quota)
+ * 4. gemini-2.5-pro (Dự phòng sâu nâng cao)
+ */
+export const GEMINI_FALLBACK_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-1.5-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-2.5-pro'
+];
 
-  for (const model of modelsToTry) {
+export interface GenerateContentClientOptions {
+  contents?: string | any;
+  prompt?: string;
+  systemInstruction?: string;
+  responseSchema?: any;
+  temperature?: number;
+}
+
+/**
+ * Hàm gọi API Gemini an toàn với cơ chế tự động Fallback qua danh sách mô hình
+ * và xử lý lỗi thân thiện với người dùng.
+ */
+export async function safeGenerateContentClient(
+  arg1: GoogleGenAI | string | GenerateContentClientOptions,
+  arg2?: GenerateContentClientOptions
+): Promise<string> {
+  let ai: GoogleGenAI | null = null;
+  let params: GenerateContentClientOptions = {};
+
+  if (typeof arg1 === 'string') {
+    params = { contents: arg1, ...(arg2 || {}) };
+    ai = getClientGemini();
+  } else if (arg1 && typeof (arg1 as any).models?.generateContent === 'function') {
+    ai = arg1 as GoogleGenAI;
+    params = arg2 || {};
+  } else if (typeof arg1 === 'object' && arg1 !== null) {
+    params = arg1 as GenerateContentClientOptions;
+    ai = getClientGemini();
+  }
+
+  // 1. Kiểm tra sự tồn tại của Gemini client / API Key
+  if (!ai) {
+    throw new Error(
+      "Chưa tìm thấy GEMINI_API_KEY. Vui lòng nhập API Key trên thanh công cụ hoặc cấu hình biến môi trường VITE_GEMINI_API_KEY trên Vercel."
+    );
+  }
+
+  const contentPayload = params.contents || params.prompt || "";
+  if (!contentPayload) {
+    throw new Error("Nội dung yêu cầu (contents/prompt) không được để trống.");
+  }
+
+  let lastErr: any = null;
+  const attemptedModels: string[] = [];
+
+  // 2. Thử lần lượt các mô hình trong danh sách Fallback
+  for (const model of GEMINI_FALLBACK_MODELS) {
+    attemptedModels.push(model);
     try {
       const config: any = {};
       if (params.systemInstruction) config.systemInstruction = params.systemInstruction;
@@ -358,7 +407,7 @@ async function safeGenerateContentClient(
 
       const res = await ai.models.generateContent({
         model,
-        contents: params.contents,
+        contents: contentPayload,
         config
       });
 
@@ -367,14 +416,21 @@ async function safeGenerateContentClient(
       }
     } catch (err: any) {
       lastErr = err;
+      
+      // Nếu là lỗi xác thực Key hoặc quyền truy cập (401, 403), dừng ngay và báo lỗi rõ ràng
       if (isPermissionOrKeyError(err)) {
-        throw err;
+        throw new Error(FRIENDLY_PERMISSION_ERROR);
       }
-      console.warn(`[safeGenerateContentClient] Model ${model} failed, trying next:`, err);
+
+      console.warn(`[safeGenerateContentClient] Model '${model}' gặp sự cố, tự động chuyển sang model tiếp theo:`, err?.message || err);
     }
   }
 
-  throw lastErr || new Error("Không thể kết nối đến mô hình Gemini");
+  // 3. Xử lý khi tất cả model đều không khả dụng
+  const lastMsg = lastErr?.message || "Lỗi kết nối máy chủ AI";
+  throw new Error(
+    `Không thể kết nối đến các mô hình AI [${attemptedModels.join(', ')}]. Chi tiết lỗi: ${lastMsg}. Vui lòng kiểm tra lại kết nối mạng hoặc hạn mức API Key.`
+  );
 }
 
 function cleanJsonText(rawText: string): string {
