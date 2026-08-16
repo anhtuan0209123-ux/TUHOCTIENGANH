@@ -36,7 +36,7 @@ function getGeminiClient(req?: express.Request) {
   if (customKey) {
     customKey = customKey.trim();
   }
-  let envKey = process.env.GEMINI_API_KEY;
+  let envKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
   if (envKey) {
     envKey = envKey.trim();
   }
@@ -63,24 +63,50 @@ function isQuotaError(error: any): boolean {
          errorStr.includes("quota");
 }
 
-async function generateContentWithRetry(ai: GoogleGenAI, params: any, retries = 2, delayMs = 1000): Promise<any> {
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      return await ai.models.generateContent(params);
-    } catch (error: any) {
-      if (isPermissionOrKeyError(error)) {
-        throw new Error(FRIENDLY_PERMISSION_ERROR);
+const SERVER_FALLBACK_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-3.7-flash",
+  "gemini-flash-latest"
+];
+
+async function generateContentWithRetry(ai: GoogleGenAI, params: any, retries = 1, delayMs = 600): Promise<any> {
+  const requestedModel = params.model;
+  const modelsToTry = requestedModel && requestedModel !== "gemini-2.5-flash"
+    ? [requestedModel, ...SERVER_FALLBACK_MODELS.filter(m => m !== requestedModel)]
+    : SERVER_FALLBACK_MODELS;
+
+  let lastError: any = null;
+
+  for (const model of modelsToTry) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        return await ai.models.generateContent({
+          ...params,
+          model
+        });
+      } catch (error: any) {
+        lastError = error;
+        if (isPermissionOrKeyError(error)) {
+          throw new Error(FRIENDLY_PERMISSION_ERROR);
+        }
+        if (isQuotaError(error)) {
+          console.warn(`[generateContentWithRetry] Quota/Limit với model ${model}, thử sang model tiếp theo...`);
+          break; // chuyển sang model tiếp theo
+        }
+        if (attempt < retries) {
+          await new Promise((resolve) => setTimeout(resolve, delayMs * (attempt + 1)));
+        }
       }
-      if (isQuotaError(error)) {
-        throw new Error("GEMINI_QUOTA_EXCEEDED");
-      }
-      if (attempt < retries) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs * (attempt + 1)));
-        continue;
-      }
-      throw error;
     }
   }
+
+  if (isPermissionOrKeyError(lastError)) {
+    throw new Error(FRIENDLY_PERMISSION_ERROR);
+  }
+  throw lastError || new Error("Không thể kết nối đến Gemini AI server.");
 }
 
 // Helper to generate varied, realistic natural sentences for offline fallback without generic templates
@@ -437,7 +463,7 @@ async function startServer() {
         let response;
         try {
           response = await generateContentWithRetry(ai, {
-            model: "gemini-3.6-flash",
+            model: "gemini-2.5-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là một giáo sư sư phạm và chuyên gia xây dựng tài liệu học tập của Quizlet. Bạn cung cấp nội dung học tập vô cùng cô đọng, dễ hiểu và truyền cảm hứng học hỏi.",
@@ -485,9 +511,9 @@ async function startServer() {
             }
           });
         } catch (error35: any) {
-          console.warn("[gemini-3.6-flash failed or high demand]. Trying fallback model gemini-3.6-flash...", error35);
+          console.warn("[gemini-2.5-flash failed or high demand]. Trying fallback model gemini-2.5-flash...", error35);
           response = await generateContentWithRetry(ai, {
-            model: "gemini-3.6-flash",
+            model: "gemini-2.5-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là một giáo sư sư phạm và chuyên gia xây dựng tài liệu học tập của Quizlet. Bạn cung cấp nội dung học tập vô cùng cô đọng, dễ hiểu và truyền cảm hứng học hỏi.",
@@ -581,7 +607,7 @@ async function startServer() {
         let response;
         try {
           response = await generateContentWithRetry(ai, {
-            model: "gemini-3.6-flash",
+            model: "gemini-2.5-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là giáo sư ngôn ngữ học và chuyên gia xây dựng nội dung học tập thông minh. Bạn cung cấp từ vựng học thuật mở rộng liên quan để nâng cao kiến thức liên tục cho học viên.",
@@ -609,9 +635,9 @@ async function startServer() {
             }
           });
         } catch (err: any) {
-          console.warn("[gemini-3.6-flash failed for more cards]. Trying fallback...", err);
+          console.warn("[gemini-2.5-flash failed for more cards]. Trying fallback...", err);
           response = await generateContentWithRetry(ai, {
-            model: "gemini-3.6-flash",
+            model: "gemini-2.5-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là giáo sư ngôn ngữ học và chuyên gia xây dựng nội dung học tập thông minh.",
@@ -701,7 +727,7 @@ async function startServer() {
       let response;
       try {
         response = await generateContentWithRetry(ai, {
-          model: "gemini-3.6-flash",
+          model: "gemini-2.5-flash",
           contents: prompt,
           config: {
             systemInstruction: "Bạn là một giáo sư ngôn ngữ học và trợ lý học tập thông thái của QuizSet, chuyên phân tích các từ khó, thuật ngữ lập trình hoặc thuật ngữ IELTS khó hiểu trở nên cực kỳ sinh động và dễ ghi nhớ.",
@@ -731,9 +757,9 @@ async function startServer() {
         if (err35?.message === "GEMINI_QUOTA_EXCEEDED" || isQuotaError(err35)) {
           throw new Error("GEMINI_QUOTA_EXCEEDED");
         }
-        console.log("[gemini-3.6-flash deep-dive failed]. Retrying with gemini-3.6-flash...");
+        console.log("[gemini-2.5-flash deep-dive failed]. Retrying with gemini-2.5-flash...");
         response = await generateContentWithRetry(ai, {
-          model: "gemini-3.6-flash",
+          model: "gemini-2.5-flash",
           contents: prompt,
           config: {
             systemInstruction: "Bạn là một giáo sư ngôn ngữ học và trợ lý học tập thông thái của QuizSet, chuyên phân tích các từ khó, thuật ngữ lập trình hoặc thuật ngữ IELTS khó hiểu trở nên cực kỳ sinh động và dễ ghi nhớ.",
@@ -823,7 +849,7 @@ async function startServer() {
         let response;
         try {
           response = await generateContentWithRetry(ai, {
-            model: "gemini-3.6-flash",
+            model: "gemini-2.5-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là một AI chuyên phân tích văn bản chuyên môn và xây dựng học tập của Quizlet. Bạn cung cấp nội dung học thuật vô cùng chất lượng, chính xác tuyệt đối, chuẩn ngữ pháp và không bao giờ tự ý cắt xén dữ liệu học từ của người dùng.",
@@ -874,9 +900,9 @@ async function startServer() {
           if (error35?.message === "GEMINI_QUOTA_EXCEEDED" || isQuotaError(error35)) {
             throw new Error("GEMINI_QUOTA_EXCEEDED");
           }
-          console.log("[gemini-3.6-flash analyze failed]. Trying fallback model gemini-3.6-flash...");
+          console.log("[gemini-2.5-flash analyze failed]. Trying fallback model gemini-2.5-flash...");
           response = await generateContentWithRetry(ai, {
-            model: "gemini-3.6-flash",
+            model: "gemini-2.5-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là một AI chuyên phân tích văn bản chuyên môn và xây dựng học học tập của Quizlet. Bạn cung cấp nội dung học thuật vô cùng chất lượng, chính xác tuyệt đối, chuẩn ngữ pháp và không bao giờ tự ý cắt xén dữ liệu học từ của người dùng.",
@@ -971,7 +997,7 @@ async function startServer() {
       let response;
       try {
         response = await generateContentWithRetry(ai, {
-          model: "gemini-3.6-flash",
+          model: "gemini-2.5-flash",
           contents: prompt,
           config: {
             systemInstruction: "Bạn là một trợ lý ngôn ngữ và giảng viên dạy từ vựng ưu tú. Bạn chuyên đặt các câu ví dụ tiếng Anh cực kỳ thực tế, sinh động, vui vẻ và gần gũi với cuộc sống hàng ngày để người học dễ liên tưởng và học thuộc từ vựng.",
@@ -999,9 +1025,9 @@ async function startServer() {
         if (err?.message === "GEMINI_QUOTA_EXCEEDED" || isQuotaError(err)) {
           throw new Error("GEMINI_QUOTA_EXCEEDED");
         }
-        console.log("[gemini-3.6-flash generate-dynamic-sentences failed]. Trying gemini-3.6-flash...");
+        console.log("[gemini-2.5-flash generate-dynamic-sentences failed]. Trying gemini-2.5-flash...");
         response = await generateContentWithRetry(ai, {
-          model: "gemini-3.6-flash",
+          model: "gemini-2.5-flash",
           contents: prompt,
           config: {
             systemInstruction: "Bạn là một trợ lý ngôn ngữ và giảng viên dạy từ vựng ưu tú. Bạn chuyên đặt các câu ví dụ tiếng Anh cực kỳ thực tế, sinh động, vui vẻ và gần gũi với cuộc sống hàng ngày để người học dễ liên tưởng và học thuộc từ vựng.",
@@ -1135,11 +1161,11 @@ async function startServer() {
       };
 
       let response;
-      // STAGE 1: Try gemini-3.6-flash with Google Search Grounding and JSON Schema
+      // STAGE 1: Try gemini-2.5-flash with Google Search Grounding and JSON Schema
       try {
         console.log(`[Stage 1] Checking quality for term: "${term}" with Google Search Grounding...`);
         response = await generateContentWithRetry(ai, {
-          model: "gemini-3.6-flash",
+          model: "gemini-2.5-flash",
           contents: prompt,
           config: {
             systemInstruction: "Bạn là giáo sư ngôn ngữ học và chuyên gia biên soạn từ điển ưu tú. Nhiệm vụ của bạn là rà soát lỗi chính tả, kiểm duyệt và chuẩn hóa ngữ nghĩa từ vựng, giải thích chi tiết cặn kẽ tại sao sai hoặc cần cải tiến, thiết lập câu mẫu B1/B2 đỉnh cao, và dẫn chứng nguồn tham chiếu từ điển thế giới (Cambridge, Oxford, Larousse...) cực kỳ chính thống, uy tín. Sử dụng công cụ Google Search để tìm kiếm và rà soát đối chiếu thông tin chính xác nhất từ các nguồn từ điển trực tuyến uy tín.",
@@ -1154,10 +1180,10 @@ async function startServer() {
         }
         console.warn("[Stage 1 Failed] Search Grounding or Tool execution failed. Retrying in Stage 2 WITHOUT Google Search...");
         
-        // STAGE 2: Try gemini-3.6-flash WITHOUT Google Search to guarantee response
+        // STAGE 2: Try gemini-2.5-flash WITHOUT Google Search to guarantee response
         try {
           response = await generateContentWithRetry(ai, {
-            model: "gemini-3.6-flash",
+            model: "gemini-2.5-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là giáo sư ngôn ngữ học và chuyên gia biên soạn từ điển ưu tú. Nhiệm vụ của bạn là rà soát lỗi chính tả, kiểm duyệt và chuẩn hóa ngữ nghĩa từ vựng, giải thích chi tiết cặn kẽ tại sao sai hoặc cần cải tiến, thiết lập câu mẫu B1/B2 đỉnh cao, và dẫn chứng nguồn tham chiếu từ điển thế giới (Cambridge, Oxford, Larousse...) cực kỳ chính thống, uy tín.",
@@ -1171,9 +1197,9 @@ async function startServer() {
           }
           console.warn("[Stage 2 Failed] Gemini 3.5-flash without search failed. Retrying in Stage 3 with 3.1-flash-lite...");
 
-          // STAGE 3: Try gemini-3.6-flash WITHOUT Google Search
+          // STAGE 3: Try gemini-2.5-flash WITHOUT Google Search
           response = await generateContentWithRetry(ai, {
-            model: "gemini-3.6-flash",
+            model: "gemini-2.5-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là giáo sư ngôn ngữ học rà soát từ vựng.",
@@ -1281,11 +1307,11 @@ YÊU CẦU:
       };
 
       let response;
-      // STAGE 1: Try gemini-3.6-flash with Google Search Grounding and JSON Schema
+      // STAGE 1: Try gemini-2.5-flash with Google Search Grounding and JSON Schema
       try {
         console.log("[Stage 1] Bulk quality check with Google Search Grounding...");
         response = await generateContentWithRetry(ai, {
-          model: "gemini-3.6-flash",
+          model: "gemini-2.5-flash",
           contents: prompt,
           config: {
             systemInstruction: "Bạn là giáo sư ngôn ngữ học và chuyên gia biên soạn từ điển ưu tú. Nhiệm vụ của bạn là rà soát lỗi chính tả toàn diện, chuẩn hóa ngữ nghĩa từ vựng tiếng Việt tối giản, dễ nhớ nhất, và dẫn chứng nguồn tham chiếu từ điển thế giới (Cambridge, Oxford, Larousse...) cực kỳ chính thống, uy tín. Sử dụng công cụ Google Search để tìm kiếm và rà soát đối chiếu thông tin chính xác nhất từ các nguồn từ điển trực tuyến uy tín.",
@@ -1300,10 +1326,10 @@ YÊU CẦU:
         }
         console.warn("[Stage 1 Failed] Bulk check with Search Grounding failed. Retrying WITHOUT search...");
 
-        // STAGE 2: Try gemini-3.6-flash WITHOUT Google Search
+        // STAGE 2: Try gemini-2.5-flash WITHOUT Google Search
         try {
           response = await generateContentWithRetry(ai, {
-            model: "gemini-3.6-flash",
+            model: "gemini-2.5-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là giáo sư ngôn ngữ học và chuyên gia biên soạn từ điển ưu tú. Nhiệm vụ của bạn là rà soát lỗi chính tả toàn diện, chuẩn hóa ngữ nghĩa từ vựng tiếng Việt tối giản, dễ nhớ nhất, và dẫn chứng nguồn tham chiếu từ điển thế giới (Cambridge, Oxford, Larousse...) cực kỳ chính thống, uy tín.",
@@ -1317,9 +1343,9 @@ YÊU CẦU:
           }
           console.warn("[Stage 2 Failed] Bulk check with 3.5-flash without search failed. Retrying with 3.1-flash-lite...");
 
-          // STAGE 3: Try gemini-3.6-flash WITHOUT Google Search
+          // STAGE 3: Try gemini-2.5-flash WITHOUT Google Search
           response = await generateContentWithRetry(ai, {
-            model: "gemini-3.6-flash",
+            model: "gemini-2.5-flash",
             contents: prompt,
             config: {
               systemInstruction: "Bạn là giáo sư ngôn ngữ học rà soát từ vựng.",
@@ -1373,7 +1399,7 @@ YÊU CẦU:
       - Từ vựng được hỏi và các lựa chọn nên thuộc danh sách từ được gửi lên, hoặc các từ liên quan siêu thách thức cùng chủ đề để tạo kịch tính.`;
 
       const response = await generateContentWithRetry(ai, {
-        model: "gemini-3.6-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           systemInstruction: "Bạn là giáo sư ngôn ngữ biên soạn câu hỏi trắc nghiệm tiếng Anh học thuật IELTS/CEFR C1/C2 siêu thách thức.",
@@ -1456,9 +1482,9 @@ YÊU CẦU:
           if (error35?.message === "GEMINI_QUOTA_EXCEEDED" || isQuotaError(error35)) {
             throw new Error("GEMINI_QUOTA_EXCEEDED");
           }
-          console.log("[gemini-3.6-flash campaign-chat failed]. Trying fallback model gemini-3.6-flash...");
+          console.log("[gemini-2.5-flash campaign-chat failed]. Trying fallback model gemini-2.5-flash...");
           response = await generateContentWithRetry(ai, {
-            model: "gemini-3.6-flash",
+            model: "gemini-2.5-flash",
             contents: prompt,
             config: {
               systemInstruction,
@@ -1522,8 +1548,8 @@ YÊU CẦU:
       const ai = getGeminiClient(req);
       const isFast = mode === "fast";
 
-      const primaryModel = isFast ? "gemini-3.6-flash" : "gemini-3.6-flash";
-      const backupModel = isFast ? "gemini-3.6-flash" : "gemini-3.6-flash";
+      const primaryModel = isFast ? "gemini-2.5-flash" : "gemini-2.5-flash";
+      const backupModel = isFast ? "gemini-2.5-flash" : "gemini-2.5-flash";
 
       const systemInstruction = isFast
         ? "Bạn là trợ lý thẩm định học thuật siêu tốc, phản hồi nhanh gọn trong tích tắc. Bạn bắt buộc phải trả về một đối tượng JSON hợp lệ nằm gọn trong khối mã ```json ... ```."
@@ -1821,7 +1847,7 @@ YÊU CẦU:
       };
 
       const response = await generateContentWithRetry(ai, {
-        model: "gemini-3.6-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           systemInstruction: "Bạn là giáo viên ngoại ngữ xuất sắc, tạo bài tập Cloze Test tự nhiên, truyền cảm hứng.",
@@ -1942,7 +1968,7 @@ Trả về cấu trúc JSON chính xác:
       };
 
       const response = await generateContentWithRetry(ai, {
-        model: "gemini-3.6-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           systemInstruction: "Bạn là AI thiết kế mini-game tương tác hấp dẫn, tạo gợi ý và bẫy trắc nghiệm thông minh.",
@@ -2026,7 +2052,7 @@ Trả về JSON:
 }`;
 
       const response = await generateContentWithRetry(ai, {
-        model: "gemini-3.6-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           systemInstruction: "Bạn là AI trợ lý gợi ý thông minh, giúp người học tư duy từ vựng một cách hào hứng.",
@@ -2060,6 +2086,113 @@ Trả về JSON:
         hint: hintText,
         exampleSentence: `Ví dụ: [___] là thuật ngữ trọng tâm trong bài học.`
       });
+    }
+  });
+
+  // API Route: AI Smart Wrong Answer Explanation & Life Context
+  app.post("/api/explain-wrong-answer", async (req, res) => {
+    const { term, definition, subject = "Tiếng Anh" } = req.body;
+
+    if (!term) {
+      res.status(400).json({ error: "Thiếu thông tin thuật ngữ cần giải thích!" });
+      return;
+    }
+
+    try {
+      const ai = getGeminiClient(req);
+      const prompt = `Bạn là một trợ lý giáo dục thông minh. Người học vừa trả lời sai khái niệm/từ vựng: "${term}" ${definition ? `(Nghĩa/Đáp án: "${definition}")` : ''}.
+Môn học: ${subject}.
+
+Hãy tạo phần giải thích & ngữ cảnh đời sống thực tế ngắn gọn, dễ hiểu để giúp người học ghi nhớ sâu hơn theo các quy tắc sau:
+
+1. NẾU MÔN HỌC LÀ TIẾNG ANH / TỪ VỰNG:
+   - Tạo đúng 3 câu ví dụ thực tế trong đời sống có chứa từ "${term}".
+   - Mỗi ví dụ gồm: 1 câu tiếng Anh chuẩn đời sống + 1 câu dịch tiếng Việt sát nghĩa.
+
+2. NẾU MÔN HỌC LÀ HÓA HỌC:
+   - Nêu 2-3 hiện tượng Hóa học thực tế trong đời sống hàng ngày liên quan đến "${term}" (VD: rỉ sét, lên men, xà phòng, bảo quản thực phẩm...).
+   - Giải thích ngắn gọn cơ chế bằng từ ngữ bình dân, dễ hình dung.
+
+3. NẾU MÔN HỌC LÀ VẬT LÝ:
+   - Nêu 2-3 ứng dụng hoặc hiện tượng Vật lý thực tế trong đời sống (VD: thắng xe, quạt điện, soi gương, cầu vồng...).
+   - Giải thích ngắn gọn vì sao hiện tượng đó xảy ra.
+
+4. CÁC MÔN KHÁC (Lịch sử, Địa lý, Sinh học, Toán học...):
+   - Nêu 2-3 liên hệ thực tế, mẹo nhớ nhanh hoặc ý nghĩa đời sống của khái niệm này.
+
+YÊU CẦU ĐỊNH DẠNG ĐẦU RA:
+- Trả về định dạng Markdown đẹp mắt, có icon sinh động.
+- Ngắn gọn, súc tích, đi thẳng vào vấn đề (tối đa 150-200 từ).
+- Không chào hỏi dài dòng.`.trim();
+
+      const response = await generateContentWithRetry(ai, {
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          systemInstruction: "Bạn là một trợ lý giáo dục sư phạm hàng đầu, giải thích trực quan, dễ nhớ, gắn liền với đời sống thực tế.",
+          temperature: 0.7
+        }
+      });
+
+      const responseText = response.text;
+      if (!responseText) throw new Error("Không nhận được phản hồi từ Gemini AI.");
+
+      res.json({ explanation: responseText.trim() });
+    } catch (error: any) {
+      console.warn(`[Explain Wrong Answer Fallback]: ${error?.message || error}`);
+
+      let fallbackText = "";
+      const s = (subject || "").toLowerCase();
+      if (s.includes("hóa") || s.includes("chem")) {
+        fallbackText = `💡 **Hiện tượng đời sống (${term}):**\n- Trong thực tế, ${term} thường xuất hiện ở các quá trình chuyển hóa chất xung quanh ta (như sự biến đổi màu sắc, phản ứng tỏa nhiệt khi nấu ăn hay bảo quản).\n- **Mẹo nhớ:** Gắn ${definition ? `"${definition}"` : term} với hiện tượng trực quan để không nhầm lẫn.`;
+      } else if (s.includes("vật") || s.includes("physic")) {
+        fallbackText = `⚡ **Ứng dụng thực tế (${term}):**\n- Khái niệm ${term} được ứng dụng rộng rãi trong các thiết bị cơ điện và hiện tượng tự nhiên hàng ngày.\n- **Mẹo nhớ:** ${definition ? `Ghi nhớ bản chất: ${definition}.` : `Quan sát các chuyển động và tương tác lực xung quanh.`}`;
+      } else if (s.includes("sinh") || s.includes("bio")) {
+        fallbackText = `🌱 **Liên hệ sinh thái (${term}):**\n- Khái niệm ${term} gắn liền với các quá trình sinh học của cơ thể và sinh quyển.\n- **Mẹo nhớ:** ${definition ? `Điểm cốt lõi: ${definition}.` : `Liên hệ với cấu tạo sống thực tế.`}`;
+      } else {
+        fallbackText = `🌟 **Ví dụ thực tế với từ "${term}":**\n1. *"The concept of ${term} is widely applied in daily life."*\n   *(Khái niệm ${term} được ứng dụng rộng rãi trong cuộc sống hàng ngày.)*\n2. *"She used ${term} to explain the situation clearly."*\n   *(Cô ấy đã dùng "${definition || term}" để giải thích tình huống một cách rõ ràng.)*\n3. *"Practice using ${term} regularly to master it."*\n   *(Hãy luyện tập sử dụng "${term}" thường xuyên để ghi nhớ thật lâu!)*`;
+      }
+
+      res.json({ explanation: fallbackText });
+    }
+  });
+
+  // API Route: General Gemini Generate Content Proxy
+  app.post("/api/gemini-generate", async (req, res) => {
+    const { prompt, contents, systemInstruction, temperature, responseSchema } = req.body;
+    const textPrompt = contents || prompt;
+    if (!textPrompt) {
+      res.status(400).json({ error: "Nội dung yêu cầu không được để trống!" });
+      return;
+    }
+
+    try {
+      const ai = getGeminiClient(req);
+      const config: any = {};
+      if (systemInstruction) config.systemInstruction = systemInstruction;
+      if (temperature !== undefined) config.temperature = temperature;
+      if (responseSchema) {
+        config.responseMimeType = "application/json";
+        config.responseSchema = responseSchema;
+      }
+
+      const response = await generateContentWithRetry(ai, {
+        model: "gemini-2.5-flash",
+        contents: textPrompt,
+        config
+      });
+
+      const responseText = response.text;
+      if (!responseText) throw new Error("Không nhận được phản hồi từ Gemini AI.");
+
+      res.json({ text: responseText.trim() });
+    } catch (error: any) {
+      console.warn(`[Gemini Generate Proxy Error]: ${error?.message || error}`);
+      if (isPermissionOrKeyError(error)) {
+        res.status(403).json({ error: FRIENDLY_PERMISSION_ERROR });
+        return;
+      }
+      res.status(500).json({ error: error?.message || "Lỗi máy chủ AI" });
     }
   });
 

@@ -1,5 +1,5 @@
 /**
- * Quản lý Gemini API Key tương thích Vercel và môi trường Local/Client
+ * Quản lý Gemini API Key tương thích Vercel, Netlify và môi trường Local/Client
  * 
  * Thứ tự ưu tiên lấy API Key:
  * 1. Key do người dùng tự cài đặt trên giao diện (lưu trong localStorage với key 'user_gemini_api_key' hoặc 'gemini_api_key')
@@ -12,13 +12,28 @@ export const LEGACY_KEY_STORAGE = 'gemini_api_key';
 export const ALT_KEY_STORAGE = 'GEMINI_API_KEY';
 
 /**
+ * Làm sạch chuỗi API Key (cắt khoảng trắng, bỏ dấu ngoặc kép thừa nếu dán từ .env)
+ */
+export function cleanApiKeyString(rawKey: unknown): string {
+  if (typeof rawKey !== 'string') return '';
+  let cleaned = rawKey.trim();
+  // Xóa dấu nháy đơn hoặc nháy kép bao bọc nếu có
+  cleaned = cleaned.replace(/^["'`]+|["'`]+$/g, '').trim();
+  return cleaned;
+}
+
+/**
  * Kiểm tra chuỗi API Key có hợp lệ về mặt hình thức cơ bản hay không
  */
 export function isValidGeminiKeyFormat(key: unknown): boolean {
-  if (typeof key !== 'string') return false;
-  const trimmed = key.trim();
-  // Key Gemini thông thường bắt đầu bằng AIza và có độ dài trên 20 ký tự
-  return trimmed.length >= 10 && !trimmed.includes(' ') && trimmed !== 'undefined' && trimmed !== 'null';
+  const cleaned = cleanApiKeyString(key);
+  return (
+    cleaned.length >= 10 &&
+    !cleaned.includes(' ') &&
+    cleaned !== 'undefined' &&
+    cleaned !== 'null' &&
+    cleaned !== 'MY_GEMINI_API_KEY'
+  );
 }
 
 /**
@@ -28,20 +43,20 @@ export function getStoredGeminiKey(): string {
   // 1. Kiểm tra localStorage (Key cá nhân do người dùng nhập trên UI)
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
-      const userKey = localStorage.getItem(PRIMARY_KEY_STORAGE)?.trim();
+      const userKey = cleanApiKeyString(localStorage.getItem(PRIMARY_KEY_STORAGE));
       if (userKey && isValidGeminiKeyFormat(userKey)) {
         return userKey;
       }
       
-      // Fallback các khóa lưu trữ cũ để không làm mất Key của người dùng
-      const legacyKey = localStorage.getItem(LEGACY_KEY_STORAGE)?.trim() || localStorage.getItem(ALT_KEY_STORAGE)?.trim();
+      // Fallback các khóa lưu trữ cũ
+      const legacyKey = cleanApiKeyString(localStorage.getItem(LEGACY_KEY_STORAGE)) || 
+                        cleanApiKeyString(localStorage.getItem(ALT_KEY_STORAGE));
       if (legacyKey && isValidGeminiKeyFormat(legacyKey)) {
-        // Tự động di chuyển sang key chuẩn mới
         localStorage.setItem(PRIMARY_KEY_STORAGE, legacyKey);
         return legacyKey;
       }
     } catch {
-      // Bỏ qua lỗi truy cập localStorage (chế độ ẩn danh nghiêm ngặt)
+      // Bỏ qua lỗi truy cập localStorage
     }
   }
 
@@ -49,37 +64,41 @@ export function getStoredGeminiKey(): string {
   try {
     const metaEnv = (import.meta as any)?.env;
     if (metaEnv) {
-      const viteKey = metaEnv.VITE_GEMINI_API_KEY;
-      if (typeof viteKey === 'string' && isValidGeminiKeyFormat(viteKey)) {
-        return viteKey.trim();
+      const viteKey = cleanApiKeyString(metaEnv.VITE_GEMINI_API_KEY);
+      if (viteKey && isValidGeminiKeyFormat(viteKey)) {
+        return viteKey;
+      }
+      const standardKey = cleanApiKeyString(metaEnv.GEMINI_API_KEY);
+      if (standardKey && isValidGeminiKeyFormat(standardKey)) {
+        return standardKey;
       }
     }
   } catch {
     // Bỏ qua lỗi truy cập metaEnv
   }
 
-  // 3. Dự phòng cho các biến môi trường chuẩn khác (GEMINI_API_KEY trên Vite hoặc process.env)
-  try {
-    const metaEnv = (import.meta as any)?.env;
-    if (metaEnv) {
-      const standardKey = metaEnv.GEMINI_API_KEY;
-      if (typeof standardKey === 'string' && isValidGeminiKeyFormat(standardKey)) {
-        return standardKey.trim();
-      }
-    }
-  } catch {
-    // Bỏ qua lỗi
-  }
-
+  // 3. Dự phòng cho process.env (Node runtime hoặc bundler polyfills)
   try {
     if (typeof process !== 'undefined' && process.env) {
-      const procKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-      if (typeof procKey === 'string' && isValidGeminiKeyFormat(procKey)) {
-        return procKey.trim();
+      const procVite = cleanApiKeyString(process.env.VITE_GEMINI_API_KEY);
+      if (procVite && isValidGeminiKeyFormat(procVite)) {
+        return procVite;
+      }
+      const procKey = cleanApiKeyString(process.env.GEMINI_API_KEY);
+      if (procKey && isValidGeminiKeyFormat(procKey)) {
+        return procKey;
       }
     }
   } catch {
     // Bỏ qua lỗi truy cập process
+  }
+
+  // 4. Kiểm tra biến toàn cục window nếu được inject
+  if (typeof window !== 'undefined') {
+    const winKey = cleanApiKeyString((window as any).__GEMINI_API_KEY__);
+    if (winKey && isValidGeminiKeyFormat(winKey)) {
+      return winKey;
+    }
   }
 
   return '';
@@ -90,13 +109,13 @@ export function getStoredGeminiKey(): string {
  */
 export function setStoredGeminiKey(key: string): void {
   if (typeof window === 'undefined') return;
-  const trimmed = (key || '').trim();
+  const cleaned = cleanApiKeyString(key);
   
   try {
-    if (trimmed) {
-      localStorage.setItem(PRIMARY_KEY_STORAGE, trimmed);
-      localStorage.setItem(LEGACY_KEY_STORAGE, trimmed);
-      localStorage.setItem(ALT_KEY_STORAGE, trimmed);
+    if (cleaned) {
+      localStorage.setItem(PRIMARY_KEY_STORAGE, cleaned);
+      localStorage.setItem(LEGACY_KEY_STORAGE, cleaned);
+      localStorage.setItem(ALT_KEY_STORAGE, cleaned);
     } else {
       localStorage.removeItem(PRIMARY_KEY_STORAGE);
       localStorage.removeItem(LEGACY_KEY_STORAGE);
@@ -107,7 +126,7 @@ export function setStoredGeminiKey(key: string): void {
   }
 
   // Bắn event thông báo cập nhật toàn app
-  window.dispatchEvent(new CustomEvent('gemini-key-updated', { detail: trimmed }));
+  window.dispatchEvent(new CustomEvent('gemini-key-updated', { detail: cleaned }));
 }
 
 /**
@@ -129,8 +148,8 @@ export function hasStoredGeminiKey(): boolean {
  */
 export function getGeminiKeySource(): 'user' | 'env' | 'none' {
   if (typeof window !== 'undefined' && window.localStorage) {
-    const userKey = localStorage.getItem(PRIMARY_KEY_STORAGE)?.trim() || 
-                    localStorage.getItem(LEGACY_KEY_STORAGE)?.trim();
+    const userKey = cleanApiKeyString(localStorage.getItem(PRIMARY_KEY_STORAGE)) || 
+                    cleanApiKeyString(localStorage.getItem(LEGACY_KEY_STORAGE));
     if (userKey && isValidGeminiKeyFormat(userKey)) {
       return 'user';
     }
@@ -193,4 +212,5 @@ export function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   }
   return fetch(input, init);
 }
+
 

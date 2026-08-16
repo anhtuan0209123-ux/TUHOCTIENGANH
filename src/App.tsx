@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StudySet, StudyMode, Folder } from './types';
 import { presetStudySets } from './presets';
 import { sanitizeCardTerm, isValidCardTerm } from './services/geminiClient';
@@ -18,6 +18,10 @@ import { HelpCenterModal } from './components/HelpCenterModal';
 import { StreakConfigModal } from './components/StreakConfigModal';
 import { InteractiveGameSuite } from './components/InteractiveGameSuite';
 import { QuickBrainGamesModal } from './components/QuickBrainGamesModal';
+import { UserAuthHeader } from './components/UserAuthHeader';
+import { StreakCelebrationToast } from './components/StreakCelebrationToast';
+import { useAuth } from './context/AuthContext';
+import { loadUserDecks, saveUserDecks, loadUserFolders, saveUserFolders } from './utils/userDataStorage';
 import { ReviewLog } from './types';
 
 export function getSetCategory(s: StudySet): 'languages' | 'tech' | 'stem' | 'social' {
@@ -39,7 +43,6 @@ export function getSetCategory(s: StudySet): 'languages' | 'tech' | 'stem' | 'so
 }
 
 import { AnalyticsPanel } from './components/AnalyticsPanel';
-import { ApiKeyHeaderBar } from './components/ApiKeyHeaderBar';
 import { checkAndUpdateStreakOnLoad, StudyActivityData } from './utils/analytics';
 import { 
   Sparkles, Plus, Search, BookOpen, Star, 
@@ -101,58 +104,43 @@ export default function App() {
     return () => window.removeEventListener('open-help-center', handleOpenHelp);
   }, []);
 
-  // Load study sets and folders from localStorage on first boot
+  const { currentEmail } = useAuth();
+  const prevEmailRef = useRef<string>(currentEmail);
+  const studySetsRef = useRef<StudySet[]>(studySets);
+  const foldersRef = useRef<Folder[]>(folders);
+
+  // Keep refs synchronized for safe state preservation on account switches
   useEffect(() => {
-    const saved = localStorage.getItem('quizlet_clone_sets');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          const sanitizedSets = parsed.map((set: any) => ({
-            ...set,
-            cards: (set.cards || [])
-              .map((c: any) => ({
-                ...c,
-                term: sanitizeCardTerm(c.term || ''),
-                definition: (c.definition || '').trim()
-              }))
-              .filter((c: any) => isValidCardTerm(c.term))
-          })).filter((set: any) => set.cards && set.cards.length > 0);
+    studySetsRef.current = studySets;
+  }, [studySets]);
 
-          if (sanitizedSets.length > 0) {
-            setStudySets(sanitizedSets);
-            localStorage.setItem('quizlet_clone_sets', JSON.stringify(sanitizedSets));
-          } else {
-            setStudySets(presetStudySets);
-            localStorage.setItem('quizlet_clone_sets', JSON.stringify(presetStudySets));
-          }
-        } else {
-          setStudySets(presetStudySets);
-          localStorage.setItem('quizlet_clone_sets', JSON.stringify(presetStudySets));
-        }
-      } catch (e) {
-        console.error("Error parsing local study sets:", e);
-        setStudySets(presetStudySets);
-        localStorage.setItem('quizlet_clone_sets', JSON.stringify(presetStudySets));
-      }
-    } else {
-      // populate standard presets
-      setStudySets(presetStudySets);
-      localStorage.setItem('quizlet_clone_sets', JSON.stringify(presetStudySets));
+  useEffect(() => {
+    foldersRef.current = folders;
+  }, [folders]);
+
+  // Load and switch study sets & folders based on active Gmail (Multi-User Data Isolation)
+  useEffect(() => {
+    const prevEmail = prevEmailRef.current;
+    if (prevEmail && prevEmail !== currentEmail) {
+      // 1. Tự động lưu toàn bộ dữ liệu hiện tại vào bộ lưu trữ của Gmail trước đó
+      saveUserDecks(prevEmail, studySetsRef.current);
+      saveUserFolders(prevEmail, foldersRef.current);
+
+      // Reset các chế độ học khi chuyển đổi tài khoản
+      setCurrentSet(null);
+      setActiveMode(null);
+      setIsEditing(false);
+      setActiveFolderId(null);
     }
 
-    const savedFolders = localStorage.getItem('quizlet_clone_folders');
-    if (savedFolders) {
-      try {
-        setFolders(JSON.parse(savedFolders));
-      } catch (e) {
-        console.error("Error parsing local folders:", e);
-        setFolders([]);
-      }
-    } else {
-      setFolders([]);
-    }
-  }, []);
+    // 2. Tải toàn bộ dữ liệu (bài học, thư mục) của Gmail hiện tại
+    const userSets = loadUserDecks(currentEmail);
+    const userFolders = loadUserFolders(currentEmail);
+
+    setStudySets(userSets);
+    setFolders(userFolders);
+    prevEmailRef.current = currentEmail;
+  }, [currentEmail]);
 
   // Initialize and listen to streak activity updates
   useEffect(() => {
@@ -177,15 +165,15 @@ export default function App() {
     setDetailTab('terms');
   }, [currentSet?.id]);
 
-  // Sync to localStorage
+  // Sync to user-isolated localStorage
   const saveStudySets = (newSets: StudySet[]) => {
     setStudySets(newSets);
-    localStorage.setItem('quizlet_clone_sets', JSON.stringify(newSets));
+    saveUserDecks(currentEmail, newSets);
   };
 
   const saveFolders = (newFolders: Folder[]) => {
     setFolders(newFolders);
-    localStorage.setItem('quizlet_clone_folders', JSON.stringify(newFolders));
+    saveUserFolders(currentEmail, newFolders);
   };
 
   const handleToggleFolderSet = (folderId: string, setId: string) => {
@@ -328,9 +316,6 @@ export default function App() {
   return (
     <div className="bg-slate-50 min-h-screen text-slate-900 font-sans antialiased pb-16">
       <div className="no-print">
-        {/* Top bar for user GEMINI_API_KEY management */}
-        <ApiKeyHeaderBar />
-
         {/* Dynamic Header Navbar banner */}
         <header className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-slate-200 z-50 transition-colors duration-200 shadow-xs">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -363,25 +348,8 @@ export default function App() {
               <span className="sm:hidden">Trợ giúp</span>
             </button>
 
-            {/* Duolingo Streak Flame Badge */}
-            <div 
-              id="header-streak-badge"
-              onClick={() => setShowStreakModal(true)}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl cursor-pointer transition ${
-                streakInfo.currentStreak > 0
-                  ? 'bg-orange-50 hover:bg-orange-100 text-orange-600 font-extrabold shadow-2xs ring-1 ring-orange-500/10'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold'
-              }`}
-              title="Bấm để Tùy chỉnh / Cấu hình Streak 🔥"
-            >
-              <Flame size={16} fill={streakInfo.currentStreak > 0 ? 'currentColor' : 'none'} className={streakInfo.currentStreak > 0 ? 'animate-pulse text-orange-500' : ''} />
-              <span className="text-xs">{streakInfo.currentStreak} ngày</span>
-              {streakInfo.freezeCount > 0 && (
-                <span className="flex items-center gap-0.5 text-[10px] font-mono font-black text-sky-700 bg-sky-100 px-1.5 py-0.5 rounded-md ml-0.5" title={`${streakInfo.freezeCount} vé Băng Bảo Vệ`}>
-                  🧊 {streakInfo.freezeCount}
-                </span>
-              )}
-            </div>
+            {/* Google Auth & Daily Streak (🔥) Integrated Control */}
+            <UserAuthHeader onOpenStreakModal={() => setShowStreakModal(true)} />
 
             {/* Clear custom cache button */}
             <button
@@ -389,7 +357,7 @@ export default function App() {
               onClick={() => {
                 setShowResetConfirm(true);
               }}
-              className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2.5 py-2 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+              className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2.5 py-2 hover:bg-slate-100 rounded-lg transition cursor-pointer hidden sm:block"
               title="Khôi phục trạng thái ban đầu"
             >
               Đặt lại mẫu mặc định
@@ -1195,8 +1163,11 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => {
-                  localStorage.removeItem('quizlet_clone_sets');
-                  setStudySets(presetStudySets);
+                  const defaultSets = [...presetStudySets];
+                  saveUserDecks(currentEmail, defaultSets);
+                  saveUserFolders(currentEmail, []);
+                  setStudySets(defaultSets);
+                  setFolders([]);
                   setCurrentSet(null);
                   setActiveMode(null);
                   setIsEditing(false);
@@ -1376,6 +1347,9 @@ export default function App() {
           }}
         />
       )}
+
+      {/* Celebratory Daily Streak Toast Notification */}
+      <StreakCelebrationToast />
     </div>
   );
 }

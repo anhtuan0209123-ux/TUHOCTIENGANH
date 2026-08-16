@@ -97,38 +97,39 @@ export const userGuideData: UserGuideData = {
       proTip: "Bí quyết học nhanh: Hãy đọc to thuật ngữ và câu ví dụ khi lật thẻ flashcard. Sự kết hợp giữa thị giác và thính giác giúp kích hoạt nhiều vùng não cùng lúc!"
     },
     {
-      id: "api-config",
-      title: "Hướng dẫn Cấu hình Hệ thống (API Config)",
-      icon: "Key",
-      description: "Kết nối Google Gemini API Key cá nhân, lưu trữ an toàn & bảo mật",
-      badge: "Cấu hình",
-      videoUrl: "https://youtu.be/wPJW5DfC4RE",
-      videoTitle: "Video Hướng Dẫn Cấu Hình Kết Nối Google Gemini API Key",
-      videoDescription: "Xem video hướng dẫn từng bước chi tiết cách lấy Google Gemini API Key từ Google AI Studio và cấu hình kết nối an toàn trực tiếp trên ứng dụng.",
-      summary: "Ứng dụng hỗ trợ kết nối trực tiếp với Google Gemini AI thông qua API Key cá nhân của bạn, giúp bạn tận hưởng tốc độ xử lý nhanh nhất, không bị giới hạn lưu lượng dùng chung.",
+      id: "ai-features",
+      title: "Trí tuệ nhân tạo (Gemini AI)",
+      icon: "Sparkles",
+      description: "Khám phá các tính năng phân tích, giải thích lỗi sai & gợi ý thông minh từ Gemini AI",
+      badge: "AI Tự động",
+      videoUrl: "https://youtu.be/Ou3o2sTXiEU",
+      videoTitle: "Video Hướng Dẫn Tính Năng AI Thông Minh",
+      videoDescription: "Tìm hiểu cách hệ thống AI tự động bóc tách tài liệu bài giảng, đặt câu ví dụ và giải thích lỗi sai chi tiết.",
+      summary: "Hệ thống tích hợp sẵn mô hình Google Gemini AI thế hệ mới trên máy chủ đám mây bảo mật cao, hoạt động 100% tự động mà không yêu cầu bạn phải cấu hình hay nhập mã API Key.",
       highlights: [
-        "Bảo mật tuyệt đối: Khóa API của bạn được lưu trữ hoàn toàn cục bộ trong trình duyệt (localStorage). Không gửi về bất kỳ máy chủ trung gian nào.",
-        "Miễn phí 100%: Google cấp hạn mức miễn phí (Free Tier) rất lớn cho tài khoản Gmail cá nhân.",
-        "Linh hoạt: Bạn có thể thay đổi hoặc xóa API Key bất kỳ lúc nào ngay trên thanh công cụ phía trên cùng."
+        "Tự động hoàn toàn: Máy chủ đám mây đã tích hợp sẵn Gemini AI tốc độ cao, sẵn sàng phục vụ học tập 24/7.",
+        "Bóc tách thông minh: Chuyển đổi văn bản, tài liệu bài giảng thô thành bộ thẻ ghi nhớ hoàn chỉnh chỉ trong vài giây.",
+        "Giải thích chuyên sâu: Tự động phân tích ngữ cảnh, giải thích khi bạn chọn sai đáp án và cung cấp 3 câu ví dụ thực tế.",
+        "Bảo mật tuyệt đối: Dữ liệu cá nhân được phân tách an toàn theo tài khoản Gmail của bạn."
       ],
       steps: [
         {
-          title: "Bước 1: Truy cập Google AI Studio",
-          detail: "Mở liên kết https://aistudio.google.com/app/apikey trong trình duyệt và đăng nhập bằng tài khoản Gmail cá nhân của bạn.",
-          tip: "Nên sử dụng tài khoản Gmail cá nhân thay vì email công ty/trường học để tránh bị giới hạn quyền truy cập từ quản trị viên."
+          title: "1. Bóc tách tài liệu bài giảng với Smart Parser",
+          detail: "Vào mục 'Bóc tách bài giảng AI' ở thanh trên cùng, dán đoạn văn bản hoặc ghi chú của bạn để AI tự động trích xuất các thuật ngữ và định nghĩa chuẩn xác.",
+          tip: "AI tự động giữ nguyên vẹn cụm thuật ngữ ghép chuyên ngành (IELTS, CNTT, Hóa học, Lịch sử...)."
         },
         {
-          title: "Bước 2: Tạo API Key mới",
-          detail: "Nhấn vào nút 'Create API Key' (Tạo khóa API), chọn dự án mặc định hoặc tạo dự án mới, sau đó sao chép dãy ký tự Key (bắt đầu bằng AIzaSy...)",
-          tip: "Hãy giữ kín dãy Key này và không chia sẻ công khai."
+          title: "2. Học tập thích ứng & Giải thích lỗi sai",
+          detail: "Khi làm bài kiểm tra hoặc luyện tập trắc nghiệm, nếu bạn trả lời sai, hệ thống AI sẽ ngay lập tức cung cấp phân tích sư phạm và 3 câu ví dụ thực tế.",
+          tip: "Đọc kỹ phần giải thích chi tiết để nắm vững bản chất khái niệm và không lặp lại lỗi sai."
         },
         {
-          title: "Bước 3: Nhập Key vào ứng dụng",
-          detail: "Nhấp vào ô 'Cấu hình API Key' màu xám ở thanh trên cùng của ứng dụng, dán dãy Key vừa sao chép vào và nhấn 'Lưu Key'. Hệ thống sẽ lập tức kiểm tra và kích hoạt biểu tượng Đã kết nối màu xanh.",
-          tip: "Nếu bạn chọn xóa Key khỏi trình duyệt, ứng dụng sẽ tự động chuyển sang chế độ AI Server dự phòng."
+          title: "3. Tự động sinh thêm thẻ học liên quan",
+          detail: "Trong chế độ Luyện tập liên tục, AI sẽ liên tục đề xuất các từ vựng mới có liên quan mật thiết để mở rộng vốn hiểu biết của bạn.",
+          tip: "Ôn tập đều đặn mỗi ngày để duy trì chuỗi học tập (Streak 🔥) liên tục!"
         }
       ],
-      proTip: "Kiểm tra quyền Key: Nếu gặp thông báo 'Permission Denied', hãy tạo một Key mới từ một dự án Google Cloud hoàn toàn mới trên Google AI Studio."
+      proTip: "Bí quyết học tập: Tận dụng tính năng AI giải thích để hiểu sâu bản chất thay vì chỉ học vẹt định nghĩa ngắn!"
     }
   ]
 };

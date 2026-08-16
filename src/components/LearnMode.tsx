@@ -3,7 +3,7 @@ import { Card, StudySet } from '../types';
 import { ArrowLeft, Sparkles, AlertCircle, CheckCircle, RefreshCcw, ThumbsUp, Loader2, Shuffle, Infinity } from 'lucide-react';
 import { trackStudyActivity } from '../utils/analytics';
 import { checkAnswerSmart, maskTermInExample, getCleanExample } from '../utils/stringMatcher';
-import { generateMoreCardsClient, generateDynamicSentencesClient } from '../services/geminiClient';
+import { generateMoreCardsClient, generateDynamicSentencesClient, fetchWrongAnswerExplanation } from '../services/geminiClient';
 
 interface LearnModeProps {
   set: StudySet;
@@ -35,9 +35,11 @@ export const LearnMode: React.FC<LearnModeProps> = ({ set, onBack, onUpdateSet }
   const [reinforceTypedCount, setReinforceTypedCount] = useState(0);
   const [reinforceInputValue, setReinforceInputValue] = useState('');
 
-  // Gemini AI daily-life example sentences
+  // Gemini AI daily-life example sentences and smart wrong answer explanation
   const [geminiSentences, setGeminiSentences] = useState<{ sentence: string; translation: string }[]>([]);
   const [isLoadingGemini, setIsLoadingGemini] = useState(false);
+  const [aiWrongExplanation, setAiWrongExplanation] = useState<string>('');
+  const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
 
   // Type to Learn Sub-mode properties
   const [studySubMode, setStudySubMode] = useState<'multiple-choice' | 'type-to-learn' | 'fill-blanks' | 'translate-sentence'>('multiple-choice');
@@ -295,10 +297,41 @@ export const LearnMode: React.FC<LearnModeProps> = ({ set, onBack, onUpdateSet }
     }
   };
 
-  // Fetch dynamic example sentences from Gemini for a word
+  // Helper to detect current subject from study set
+  const detectSubjectFromSet = () => {
+    const combined = `${set.title} ${set.description || ''} ${set.category || ''}`.toLowerCase();
+    if (combined.includes('hóa') || combined.includes('hoá') || combined.includes('chem')) return 'Hóa học';
+    if (combined.includes('vật lý') || combined.includes('vật lí') || combined.includes('physic')) return 'Vật lý';
+    if (combined.includes('sinh học') || combined.includes('sinh') || combined.includes('bio')) return 'Sinh học';
+    if (combined.includes('lịch sử') || combined.includes('history')) return 'Lịch sử';
+    if (combined.includes('địa lý') || combined.includes('địa lí') || combined.includes('geo')) return 'Địa lý';
+    if (combined.includes('toán') || combined.includes('math')) return 'Toán học';
+    if (combined.includes('tin học') || combined.includes('lập trình') || combined.includes('code')) return 'Tin học';
+    return 'Tiếng Anh';
+  };
+
+  // Fetch dynamic example sentences and smart wrong answer explanation from Gemini
   const fetchGeminiSentences = async (term: string, definition: string) => {
     setIsLoadingGemini(true);
+    setIsLoadingExplanation(true);
     setGeminiSentences([]);
+    setAiWrongExplanation('');
+
+    const subject = detectSubjectFromSet();
+
+    // 1. Fetch smart multi-subject explanation
+    fetchWrongAnswerExplanation({
+      term,
+      definition,
+      subject
+    }).then((res) => {
+      setAiWrongExplanation(res);
+      setIsLoadingExplanation(false);
+    }).catch(() => {
+      setIsLoadingExplanation(false);
+    });
+
+    // 2. Fetch sentence examples
     try {
       const data = await generateDynamicSentencesClient(term, definition);
       if (data && Array.isArray(data.sentences)) {
@@ -453,6 +486,7 @@ export const LearnMode: React.FC<LearnModeProps> = ({ set, onBack, onUpdateSet }
       setReinforceTypedCount(0);
       setReinforceInputValue('');
       setGeminiSentences([]);
+      setAiWrongExplanation('');
       setHintMessage('');
     } else if (isContinuousMode) {
       handleLoadMoreCards(true);
@@ -1046,51 +1080,66 @@ export const LearnMode: React.FC<LearnModeProps> = ({ set, onBack, onUpdateSet }
                                </div>
                              </div>
 
-                             {/* Gemini AI Daily-life Example Sentences - updates dynamically */}
+                             {/* Gemini AI Daily-life Example Sentences & Smart Subject Explanation */}
                              <div className="bg-gradient-to-r from-indigo-50/50 to-purple-50/50 border border-indigo-100/80 p-5 rounded-xl space-y-3.5 mt-3 animate-fade-in text-left">
                                <div className="flex items-center justify-between">
                                  <div className="flex items-center gap-1.5 text-indigo-700">
                                    <Sparkles size={16} className="text-indigo-500 animate-pulse" />
                                    <span className="text-xs font-black uppercase tracking-wider">
-                                     💡 Trợ lý AI Gemini: Ngữ cảnh đời sống thực tế
+                                     💡 Trợ lý AI Gemini: Giải thích & Ngữ cảnh ({detectSubjectFromSet()})
                                    </span>
                                  </div>
                                  <button
                                    type="button"
                                    onClick={() => fetchGeminiSentences(currentQuestion.card.term, currentQuestion.card.definition)}
-                                   disabled={isLoadingGemini}
+                                   disabled={isLoadingGemini || isLoadingExplanation}
                                    className="text-[11px] font-extrabold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1 cursor-pointer bg-white px-2 py-1 rounded-md border border-indigo-150 shadow-3xs animate-fade-in"
                                  >
-                                   <RefreshCcw size={11} className={isLoadingGemini ? "animate-spin" : ""} />
-                                   <span>Đổi câu khác (AI)</span>
+                                   <RefreshCcw size={11} className={isLoadingGemini || isLoadingExplanation ? "animate-spin" : ""} />
+                                   <span>Làm mới giải thích (AI)</span>
                                  </button>
                                </div>
 
-                               {isLoadingGemini ? (
+                               {isLoadingExplanation || isLoadingGemini ? (
                                  <div className="py-6 flex flex-col items-center justify-center space-y-2">
                                    <Loader2 size={20} className="text-indigo-500 animate-spin" />
-                                   <span className="text-2xs font-bold text-indigo-400 animate-pulse">Gemini đang cập nhật câu mới...</span>
-                                 </div>
-                               ) : geminiSentences.length > 0 ? (
-                                 <div className="space-y-3">
-                                   {geminiSentences.map((item, index) => (
-                                     <div key={index} className="p-3 bg-white/80 rounded-lg border border-slate-100 text-xs shadow-3xs hover:border-indigo-200 transition-colors">
-                                       <p className="font-extrabold text-slate-800 leading-relaxed font-sans">
-                                         {item.sentence}
-                                       </p>
-                                       <p className="text-slate-550 mt-1 font-medium italic">
-                                         {item.translation}
-                                       </p>
-                                     </div>
-                                   ))}
+                                   <span className="text-2xs font-bold text-indigo-400 animate-pulse">Gemini đang giải thích chi tiết & phân tích theo môn học...</span>
                                  </div>
                                ) : (
-                                 <div className="text-center py-2 text-2xs text-slate-400 font-bold">
-                                   Chưa thể kết nối tới trợ lý AI để tạo ngữ cảnh, hãy dùng câu ví dụ mặc định.
-                                 </div>
+                                 <>
+                                   {aiWrongExplanation ? (
+                                     <div className="p-4 bg-white/95 rounded-lg border border-indigo-100 text-xs shadow-3xs text-slate-800 leading-relaxed whitespace-pre-line font-medium">
+                                       {aiWrongExplanation}
+                                     </div>
+                                   ) : null}
+
+                                   {geminiSentences.length > 0 && (
+                                     <div className="space-y-2 pt-1">
+                                       <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider block">
+                                         🌟 Câu ví dụ thực tế:
+                                       </span>
+                                       {geminiSentences.map((item, index) => (
+                                         <div key={index} className="p-3 bg-white/80 rounded-lg border border-slate-100 text-xs shadow-3xs hover:border-indigo-200 transition-colors">
+                                           <p className="font-extrabold text-slate-800 leading-relaxed font-sans">
+                                             {item.sentence}
+                                           </p>
+                                           <p className="text-slate-550 mt-1 font-medium italic">
+                                             {item.translation}
+                                           </p>
+                                         </div>
+                                       ))}
+                                     </div>
+                                   )}
+
+                                   {!aiWrongExplanation && geminiSentences.length === 0 && (
+                                     <div className="text-center py-2 text-2xs text-slate-400 font-bold">
+                                       Chưa thể kết nối tới trợ lý AI để tạo ngữ cảnh, hãy dùng câu ví dụ mặc định.
+                                     </div>
+                                   )}
+                                 </>
                                )}
                                <p className="text-[10px] text-slate-400 leading-normal font-medium">
-                                 💡 Gợi ý: Học từ qua nhiều ngữ cảnh đời sống đa dạng sẽ giúp bạn tăng tốc độ tiếp thu gấp 3 lần!
+                                 💡 Gợi ý: Ghi nhớ khái niệm qua các liên hệ đời sống thực tế sẽ giúp bạn nhớ sâu và lâu hơn gấp 3 lần!
                                </p>
                              </div>
 

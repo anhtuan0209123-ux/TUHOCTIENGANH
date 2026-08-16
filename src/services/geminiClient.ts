@@ -337,15 +337,21 @@ function getClientGemini(): GoogleGenAI | null {
 /**
  * Danh sách các mô hình Gemini ưu tiên thử nghiệm theo thứ tự Fallback:
  * 1. gemini-2.5-flash (Nhanh, thông minh, tối ưu cho flashcards & phân tích)
- * 2. gemini-1.5-flash (Ổn định, tương thích cao mọi tài khoản)
- * 3. gemini-2.0-flash-lite (Siêu nhẹ, tiết kiệm quota)
- * 4. gemini-2.5-pro (Dự phòng sâu nâng cao)
+ * 2. gemini-2.0-flash (Ổn định, tương thích cao với tất cả tài khoản cá nhân)
+ * 3. gemini-1.5-flash (Dự phòng chuẩn tương thích cao)
+ * 4. gemini-2.0-flash-lite (Siêu nhẹ, tiết kiệm quota)
+ * 5. gemini-3.7-flash (Mô hình tân tiến)
+ * 6. gemini-3.1-flash-lite (Bản lite thế hệ mới)
+ * 7. gemini-flash-latest (Bản alias tự động trỏ model mới nhất)
  */
 export const GEMINI_FALLBACK_MODELS = [
   'gemini-2.5-flash',
+  'gemini-2.0-flash',
   'gemini-1.5-flash',
   'gemini-2.0-flash-lite',
-  'gemini-2.5-pro'
+  'gemini-3.7-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-flash-latest'
 ];
 
 export interface GenerateContentClientOptions {
@@ -354,6 +360,72 @@ export interface GenerateContentClientOptions {
   systemInstruction?: string;
   responseSchema?: any;
   temperature?: number;
+}
+
+/**
+ * Gọi trực tiếp REST API của Google Gemini qua fetch
+ * Hữu hiệu tuyệt đối khi bundle SDK gặp vấn đề trên môi trường trình duyệt/Vercel
+ */
+async function fetchDirectGeminiRest(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  systemInstruction?: string,
+  responseSchema?: any,
+  temperature?: number
+): Promise<string> {
+  const cleanKey = apiKey.trim().replace(/^["'`]+|["'`]+$/g, '');
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(cleanKey)}`;
+  
+  const contents = [
+    {
+      role: 'user',
+      parts: [{ text: prompt }]
+    }
+  ];
+
+  const body: any = {
+    contents,
+    generationConfig: {
+      temperature: temperature !== undefined ? temperature : 0.7
+    }
+  };
+
+  if (systemInstruction) {
+    body.systemInstruction = {
+      role: 'user',
+      parts: [{ text: systemInstruction }]
+    };
+  }
+
+  if (responseSchema) {
+    body.generationConfig.responseMimeType = "application/json";
+    body.generationConfig.responseSchema = responseSchema;
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const errorJson = await response.json().catch(() => ({}));
+    const errMessage = errorJson?.error?.message || `HTTP ${response.status} ${response.statusText}`;
+    const errObj = new Error(errMessage);
+    (errObj as any).status = response.status;
+    throw errObj;
+  }
+
+  const data = await response.json();
+  const candidate = data.candidates?.[0];
+  const text = candidate?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error('API Gemini trả về phản hồi rỗng.');
+  }
+  return text;
 }
 
 /**
@@ -378,55 +450,117 @@ export async function safeGenerateContentClient(
     ai = getClientGemini();
   }
 
-  // 1. Kiểm tra sự tồn tại của Gemini client / API Key
-  if (!ai) {
-    throw new Error(
-      "Chưa tìm thấy GEMINI_API_KEY. Vui lòng nhập API Key trên thanh công cụ hoặc cấu hình biến môi trường VITE_GEMINI_API_KEY trên Vercel."
-    );
-  }
-
+  const currentApiKey = getStoredGeminiKey();
   const contentPayload = params.contents || params.prompt || "";
   if (!contentPayload) {
     throw new Error("Nội dung yêu cầu (contents/prompt) không được để trống.");
   }
 
+  // 1. Thử gửi yêu cầu qua Backend Proxy (/api/gemini-generate) trước tiên
+  // (Sử dụng trực tiếp server-side GEMINI_API_KEY hoặc custom key gửi kèm)
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    if (currentApiKey) {
+      headers['x-gemini-api-key'] = currentApiKey;
+    }
+
+    const serverRes = await fetch('/api/gemini-generate', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        contents: contentPayload,
+        systemInstruction: params.systemInstruction,
+        temperature: params.temperature,
+        responseSchema: params.responseSchema
+      })
+    });
+
+    if (serverRes.ok) {
+      const serverData = await serverRes.json();
+      if (serverData && serverData.text) {
+        return serverData.text;
+      }
+    }
+  } catch (serverErr) {
+    // Backend không khả dụng hoặc ở môi trường static không có server.ts, tiếp tục fallback client-side
+    console.debug('[safeGenerateContentClient] Server proxy không phản hồi, chuyển client direct:', serverErr);
+  }
+
+  // 2. Kiểm tra sự tồn tại của Client API Key nếu gọi trực tiếp từ trình duyệt
+  if (!currentApiKey || !currentApiKey.trim()) {
+    throw new Error(
+      "Chưa tìm thấy GEMINI_API_KEY. Vui lòng nhập API Key trên thanh công cụ hoặc cấu hình biến môi trường VITE_GEMINI_API_KEY trên Vercel."
+    );
+  }
+
   let lastErr: any = null;
   const attemptedModels: string[] = [];
 
-  // 2. Thử lần lượt các mô hình trong danh sách Fallback
+  // 3. Thử lần lượt các mô hình trong danh sách Fallback bằng SDK và REST
   for (const model of GEMINI_FALLBACK_MODELS) {
     attemptedModels.push(model);
+
+    // Cách 1: Thử qua SDK @google/genai nếu ai instance sẵn sàng
+    if (ai) {
+      try {
+        const config: any = {};
+        if (params.systemInstruction) config.systemInstruction = params.systemInstruction;
+        if (params.temperature !== undefined) config.temperature = params.temperature;
+        if (params.responseSchema) {
+          config.responseMimeType = "application/json";
+          config.responseSchema = params.responseSchema;
+        }
+
+        const res = await ai.models.generateContent({
+          model,
+          contents: contentPayload,
+          config
+        });
+
+        if (res && res.text) {
+          return res.text;
+        }
+      } catch (err: any) {
+        lastErr = err;
+        
+        // Nếu là lỗi xác thực Key hoặc quyền truy cập 401/403 rõ ràng
+        if (isPermissionOrKeyError(err)) {
+          console.warn(`[safeGenerateContentClient] Xác thực thất bại với model ${model}, chuyển sang REST...`);
+        } else {
+          console.warn(`[safeGenerateContentClient] Model '${model}' SDK gặp sự cố:`, err?.message || err);
+        }
+      }
+    }
+
+    // Cách 2: Thử qua Direct REST API (bỏ qua mọi lỗi polyfill của SDK)
     try {
-      const config: any = {};
-      if (params.systemInstruction) config.systemInstruction = params.systemInstruction;
-      if (params.temperature !== undefined) config.temperature = params.temperature;
-      if (params.responseSchema) {
-        config.responseMimeType = "application/json";
-        config.responseSchema = params.responseSchema;
-      }
-
-      const res = await ai.models.generateContent({
+      const restResult = await fetchDirectGeminiRest(
+        currentApiKey,
         model,
-        contents: contentPayload,
-        config
-      });
-
-      if (res && res.text) {
-        return res.text;
+        contentPayload,
+        params.systemInstruction,
+        params.responseSchema,
+        params.temperature
+      );
+      if (restResult) {
+        return restResult;
       }
-    } catch (err: any) {
-      lastErr = err;
-      
-      // Nếu là lỗi xác thực Key hoặc quyền truy cập (401, 403), dừng ngay và báo lỗi rõ ràng
-      if (isPermissionOrKeyError(err)) {
+    } catch (restErr: any) {
+      lastErr = restErr;
+      if (isPermissionOrKeyError(restErr)) {
         throw new Error(FRIENDLY_PERMISSION_ERROR);
       }
-
-      console.warn(`[safeGenerateContentClient] Model '${model}' gặp sự cố, tự động chuyển sang model tiếp theo:`, err?.message || err);
+      console.warn(`[safeGenerateContentClient] Model '${model}' REST gặp sự cố, chuyển model tiếp theo:`, restErr?.message || restErr);
     }
   }
 
-  // 3. Xử lý khi tất cả model đều không khả dụng
+  // 4. Xử lý khi tất cả model đều không khả dụng
+  if (isPermissionOrKeyError(lastErr)) {
+    throw new Error(FRIENDLY_PERMISSION_ERROR);
+  }
+
   const lastMsg = lastErr?.message || "Lỗi kết nối máy chủ AI";
   throw new Error(
     `Không thể kết nối đến các mô hình AI [${attemptedModels.join(', ')}]. Chi tiết lỗi: ${lastMsg}. Vui lòng kiểm tra lại kết nối mạng hoặc hạn mức API Key.`
@@ -446,6 +580,24 @@ function cleanJsonText(rawText: string): string {
 
 // 1. Generate Study Set
 export async function generateSetClient(topic: string, amount: number = 8, language: string = 'Vietnamese') {
+  // 1. First priority: Server-side API endpoint
+  try {
+    const response = await fetch('/api/generate-set', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic, amount, language })
+    });
+    if (response.ok) {
+      const data = await response.json();
+      if (data && Array.isArray(data.cards) && data.cards.length > 0) {
+        return data;
+      }
+    }
+  } catch (err) {
+    console.debug('[generateSetClient] Backend call error, trying client fallback:', err);
+  }
+
+  // 2. Direct client fallback if available
   const ai = getClientGemini();
   if (!ai) {
     return generateOfflineStudySet(topic, amount);
@@ -496,14 +648,30 @@ YÊU CẦU NGHIÊM NGẶT VỀ ĐỘ CHÍNH XÁC VÀ MÔN HỌC CHUYÊN NGÀNH:
     });
     return JSON.parse(cleanJsonText(rawText));
   } catch (err) {
-    if (isPermissionOrKeyError(err)) throw new Error(FRIENDLY_PERMISSION_ERROR);
     console.warn("Client Gemini generateSet failed, using offline fallback:", err);
     return generateOfflineStudySet(topic, amount);
   }
 }
 
 // 2. Generate More Cards
-export async function generateMoreCardsClient(topic: string, existingTerms: string[] = [], amount: number = 5, _language: string = "Vietnamese") {
+export async function generateMoreCardsClient(topic: string, existingTerms: string[] = [], amount: number = 5, language: string = "Vietnamese") {
+  // 1. First priority: Server-side API endpoint
+  try {
+    const response = await fetch('/api/generate-more-cards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic, existingTerms, amount, language })
+    });
+    if (response.ok) {
+      const data = await response.json();
+      if (data && Array.isArray(data.cards) && data.cards.length > 0) {
+        return data;
+      }
+    }
+  } catch (err) {
+    console.debug('[generateMoreCardsClient] Backend call error, trying client fallback:', err);
+  }
+
   const ai = getClientGemini();
   if (!ai) {
     const offlineSet = generateOfflineStudySet(topic, 12);
@@ -546,7 +714,6 @@ YÊU CẦU QUAN TRỌNG:
     });
     return JSON.parse(cleanJsonText(rawText));
   } catch (err) {
-    if (isPermissionOrKeyError(err)) throw new Error(FRIENDLY_PERMISSION_ERROR);
     console.warn("Client Gemini generateMoreCards failed:", err);
     const offlineSet = generateOfflineStudySet(topic, 12);
     const filteredCards = offlineSet.cards.filter(c => !existingTerms.some((existing: string) => existing.toLowerCase().trim() === c.term.toLowerCase().trim())).slice(0, amount);
@@ -565,6 +732,23 @@ export async function deepDiveClient(term: string, definition?: string, example?
     ],
     mistakes: `⚠️ Tránh nhầm lẫn chính tả hoặc hiểu sai ngữ cảnh chuyên ngành của từ "${term}". Hãy ôn tập thường xuyên để củng cố phản xạ tự nhiên.`
   };
+
+  // 1. First priority: Server-side API endpoint
+  try {
+    const response = await fetch('/api/deep-dive', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ term, definition, example })
+    });
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.essence) {
+        return data;
+      }
+    }
+  } catch (err) {
+    console.debug('[deepDiveClient] Backend call error, trying fallback:', err);
+  }
 
   const ai = getClientGemini();
   if (!ai) {
@@ -597,7 +781,6 @@ YÊU CẦU NGHIÊM NGẶT:
     });
     return JSON.parse(cleanJsonText(rawText));
   } catch (err) {
-    if (isPermissionOrKeyError(err)) throw new Error(FRIENDLY_PERMISSION_ERROR);
     console.warn("Client Gemini deepDive failed:", err);
     return fallbackObj;
   }
@@ -605,6 +788,30 @@ YÊU CẦU NGHIÊM NGẶT:
 
 // 4. Analyze Vocab
 export async function analyzeVocabClient(text: string, language: string = "Vietnamese") {
+  // 1. First priority: Server-side API endpoint
+  try {
+    const response = await fetch('/api/analyze-vocab', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, language })
+    });
+    if (response.ok) {
+      const data = await response.json();
+      if (data && Array.isArray(data.cards) && data.cards.length > 0) {
+        data.cards = data.cards
+          .map((c: any) => ({
+            ...c,
+            term: sanitizeCardTerm(c.term || ''),
+            definition: (c.definition || '').trim()
+          }))
+          .filter((c: any) => isValidCardTerm(c.term));
+        return data;
+      }
+    }
+  } catch (err) {
+    console.debug('[analyzeVocabClient] Backend call error, trying fallback:', err);
+  }
+
   const ai = getClientGemini();
   if (!ai) {
     return extractOfflineVocab(text);
@@ -664,7 +871,6 @@ QUY TẮC BẮT BUỘC BÓC TÁCH MẶT TRƯỚC VÀ MẶT SAU THẺ:
     }
     return parsed;
   } catch (err) {
-    if (isPermissionOrKeyError(err)) throw new Error(FRIENDLY_PERMISSION_ERROR);
     console.warn("Client Gemini analyzeVocab failed:", err);
     return extractOfflineVocab(text);
   }
@@ -1077,3 +1283,142 @@ BẮT BUỘC TRẢ VỀ kết quả dưới dạng JSON có cấu trúc sau:
     };
   }
 }
+
+export interface ExplanationRequest {
+  term: string;           // Từ vựng hoặc khái niệm (VD: "country", "Phản ứng ứng xà phòng hóa", "Định luật Newton")
+  definition?: string;     // Định nghĩa/Đáp án đúng
+  subject?: string;        // Môn học: "Tiếng Anh", "Hóa học", "Vật lý", "Sinh học", v.v.
+}
+
+/**
+ * Tạo Prompt thông minh tự động thích ứng theo môn học
+ */
+export function buildDynamicPrompt({ term, definition, subject = 'Tiếng Anh' }: ExplanationRequest): string {
+  return `
+Bạn là một trợ lý giáo dục thông minh. Người học vừa trả lời sai khái niệm/từ vựng: "${term}" ${definition ? `(Nghĩa/Đáp án: "${definition}")` : ''}.
+Môn học: ${subject}.
+
+Hãy tạo phần giải thích & ngữ cảnh đời sống thực tế ngắn gọn, dễ hiểu để giúp người học ghi nhớ sâu hơn theo các quy tắc sau:
+
+1. NẾU MÔN HỌC LÀ TIẾNG ANH / TỪ VỰNG:
+   - Tạo đúng 3 câu ví dụ thực tế trong đời sống có chứa từ "${term}".
+   - Mỗi ví dụ gồm: 1 câu tiếng Anh chuẩn đời sống + 1 câu dịch tiếng Việt sát nghĩa.
+
+2. NẾU MÔN HỌC LÀ HÓA HỌC:
+   - Nêu 2-3 hiện tượng Hóa học thực tế trong đời sống hàng ngày liên quan đến "${term}" (VD: rỉ sét, lên men, xà phòng, bảo quản thực phẩm...).
+   - Giải thích ngắn gọn cơ chế bằng từ ngữ bình dân, dễ hình dung.
+
+3. NẾU MÔN HỌC LÀ VẬT LÝ:
+   - Nêu 2-3 ứng dụng hoặc hiện tượng Vật lý thực tế trong đời sống (VD: thắng xe, quạt điện, soi gương, cầu vồng...).
+   - Giải thích ngắn gọn vì sao hiện tượng đó xảy ra.
+
+4. CÁC MÔN KHÁC (Lịch sử, Địa lý, Sinh học...):
+   - Nêu 2-3 liên hệ thực tế, mẹo nhớ nhanh hoặc ý nghĩa đời sống của khái niệm này.
+
+YÊU CẦU ĐỊNH DẠNG ĐẦU RA:
+- Trả về định dạng Markdown đẹp mắt, có icon sinh động.
+- Ngắn gọn, súc tích, đi thẳng vào vấn đề (tối đa 150-200 từ).
+- Không chào hỏi dài dòng.
+`.trim();
+}
+
+/**
+ * Hàm dự phòng giải thích sư phạm chất lượng cao khi ngoại tuyến hoặc đang cấu hình API Key
+ */
+export function buildOfflineWrongAnswerExplanation({ term, definition, subject = 'Tiếng Anh' }: ExplanationRequest): string {
+  const s = (subject || '').toLowerCase();
+  const cleanTerm = (term || '').trim();
+  const cleanDef = (definition || '').trim();
+
+  if (s.includes('hóa') || s.includes('hoá') || s.includes('chem')) {
+    return `💡 **Hiện tượng Hóa học đời sống (${cleanTerm}):**
+- 🧪 **Trong thực tế:** Khái niệm **${cleanTerm}** thường gắn liền với sự biến đổi chất, hiện tượng rỉ sét kim loại, phản ứng tạo bọt, lên men thực phẩm hoặc xà phòng hóa chất béo trong sinh hoạt.
+- 🔍 **Cơ chế dễ hiểu:** ${cleanDef ? `Bản chất cốt lõi là "${cleanDef}". Khi các liên kết phân tử tương tác và tái tổ chức, năng lượng và tính chất của chất sẽ thay đổi.` : 'Sự tương tác giữa các nguyên tử/phân tử tạo thành liên kết mới với các tính chất đặc trưng.'}
+- 🎯 **Mẹo nhớ:** Hãy liên tưởng đến sự đổi màu của dung dịch hoặc hiện tượng sủi bọt khí khi nấu nướng!`;
+  }
+
+  if (s.includes('vật lý') || s.includes('vật lí') || s.includes('physic')) {
+    return `⚡ **Hiện tượng & Ứng dụng Vật lý (${cleanTerm}):**
+- ⚙️ **Trong đời sống:** **${cleanTerm}** xuất hiện ở các thiết bị quen thuộc như hệ thống phanh xe đạp/xe máy, cánh quạt quay, mặt gương phản xạ hay hiện tượng cầu vồng sau mưa.
+- 🔭 **Nguyên lý cốt lõi:** ${cleanDef ? `Được định nghĩa là "${cleanDef}".` : 'Dựa trên định luật bảo toàn năng lượng và tương tác cơ học/quang học tự nhiên.'}
+- 🎯 **Mẹo nhớ:** Nhớ theo nguyên lý "Nguyên nhân tạo ra lực ➔ Chuyển động hoặc biến đổi tương ứng trong thực tế".`;
+  }
+
+  if (s.includes('sinh học') || s.includes('sinh') || s.includes('bio')) {
+    return `🌱 **Ý nghĩa Sinh học & Đời sống (${cleanTerm}):**
+- 🧬 **Trong cơ thể & tự nhiên:** **${cleanTerm}** là mắt xích quan trọng trong quá trình trao đổi chất, hệ tuần hoàn, quang hợp của cây xanh hoặc thích nghi tiến hóa.
+- 📌 **Bản chất:** ${cleanDef ? `"${cleanDef}"` : 'Cơ chế duy trì trạng thái cân bằng nội môi và phát triển của sinh vật sống.'}
+- 🎯 **Mẹo nhớ:** Gắn với chức năng trực tiếp của tế bào hoặc cơ quan mà bạn gặp mỗi ngày.`;
+  }
+
+  if (s.includes('lịch sử') || s.includes('history')) {
+    return `📜 **Bối cảnh Lịch sử & Ý nghĩa (${cleanTerm}):**
+- 🏛️ **Bối cảnh:** **${cleanTerm}** là sự kiện/khái niệm mang tính bước ngoặt ${cleanDef ? `với ý nghĩa: "${cleanDef}"` : ''}.
+- 🎯 **Mẹo nhớ:** Hãy nhớ theo trục thời gian (Nguyên nhân ➔ Diễn biến ➔ Ý nghĩa lịch sử lâu dài).`;
+  }
+
+  if (s.includes('địa lý') || s.includes('địa lí') || s.includes('geo')) {
+    return `🌍 **Đặc điểm Địa lý & Thực tế (${cleanTerm}):**
+- 🗺️ **Hiện tượng tự nhiên:** **${cleanTerm}** phản ánh quy luật địa hình, khí hậu, dòng hải lưu hoặc đặc điểm dân cư vùng miền.
+- 🎯 **Mẹo nhớ:** ${cleanDef ? `Trọng tâm là: "${cleanDef}".` : 'Hình dung trên bản đồ địa hình thực tế.'}`;
+  }
+
+  // Mặc định cho Tiếng Anh / Ngoại ngữ
+  return `🌟 **3 Câu ví dụ thực tế với từ "${cleanTerm}":**
+
+1. 🔹 *"The word **${cleanTerm}** is commonly used in everyday conversations."*  
+   *(Từ **${cleanTerm}** rất thường xuyên được sử dụng trong các cuộc trò chuyện hàng ngày.)*
+
+2. 🔹 *"Can you explain the meaning of **${cleanTerm}** with a clear example?"*  
+   *(Bạn có thể giải thích nghĩa của **${cleanTerm}** ${cleanDef ? `(nghĩa: ${cleanDef})` : ''} bằng một ví dụ rõ ràng không?)*
+
+3. 🔹 *"Consistent practice will help you remember **${cleanTerm}** effortlessly."*  
+   *(Luyện tập đều đặn sẽ giúp bạn ghi nhớ từ **${cleanTerm}** một cách tự nhiên và chính xác!)*`;
+}
+
+/**
+ * Hàm chính được gọi tự động ngay khi trả lời sai
+ */
+export async function fetchWrongAnswerExplanation(data: ExplanationRequest): Promise<string> {
+  const currentApiKey = getStoredGeminiKey();
+
+  // 1. Ưu tiên gọi qua Backend API (/api/explain-wrong-answer)
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    if (currentApiKey) {
+      headers['x-gemini-api-key'] = currentApiKey;
+    }
+
+    const response = await fetch('/api/explain-wrong-answer', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data)
+    });
+
+    if (response.ok) {
+      const resJson = await response.json();
+      if (resJson && resJson.explanation) {
+        return resJson.explanation;
+      }
+    }
+  } catch (backendErr) {
+    console.debug('[fetchWrongAnswerExplanation] Backend route not available, falling back to direct:', backendErr);
+  }
+
+  // 2. Thử gọi qua safeGenerateContentClient (REST / SDK)
+  const prompt = buildDynamicPrompt(data);
+  try {
+    const responseText = await safeGenerateContentClient(prompt);
+    if (responseText && responseText.trim()) {
+      return responseText.trim();
+    }
+  } catch (error) {
+    console.debug('[fetchWrongAnswerExplanation] AI Direct call failed, using pedagogical fallback:', error);
+  }
+
+  // 3. Fallback sư phạm chất lượng cao theo môn học (không làm gián đoạn trải nghiệm học tập)
+  return buildOfflineWrongAnswerExplanation(data);
+}
+

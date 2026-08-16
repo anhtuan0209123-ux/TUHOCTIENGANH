@@ -14,14 +14,12 @@ interface HelpCenterModalProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigateToTab?: (tab: 'sets' | 'folders' | 'ai' | 'analytics') => void;
-  onOpenApiKeyModal?: () => void;
 }
 
 export const HelpCenterModal: React.FC<HelpCenterModalProps> = ({
   isOpen,
   onClose,
   onNavigateToTab,
-  onOpenApiKeyModal,
 }) => {
   const [activeSectionId, setActiveSectionId] = useState<string>('overview');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -286,25 +284,7 @@ export const HelpCenterModal: React.FC<HelpCenterModalProps> = ({
               )}
 
               {/* Quick Action Button contextually */}
-              {activeSection.id === 'api-config' && onOpenApiKeyModal && (
-                <div className="p-4 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/50 rounded-xl flex items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <h5 className="font-bold text-xs text-amber-900 dark:text-amber-200">Thao tác nhanh</h5>
-                    <p className="text-xs text-amber-800 dark:text-amber-300/90">Nhập hoặc thay đổi Google Gemini API Key ngay lập tức</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      onClose();
-                      onOpenApiKeyModal();
-                    }}
-                    className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-xs transition cursor-pointer shrink-0 flex items-center gap-1.5"
-                  >
-                    <Key size={14} /> Cấu hình API Key
-                  </button>
-                </div>
-              )}
-
-              {activeSection.id === 'ai-workflow' && onNavigateToTab && (
+              {(activeSection.id === 'ai-features' || activeSection.id === 'ai-workflow') && onNavigateToTab && (
                 <div className="p-4 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900/50 rounded-xl flex items-center justify-between gap-4">
                   <div className="space-y-1">
                     <h5 className="font-bold text-xs text-indigo-900 dark:text-indigo-200">Trải nghiệm ngay</h5>
